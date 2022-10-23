@@ -71,5 +71,7 @@ docs/_build/
 # Pyenv
 .python-version
 
+.ipynb_checkpoints
+
 .github
 Cargo.lock
