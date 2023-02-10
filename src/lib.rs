@@ -14,7 +14,7 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
         py: Python<'a>,
         elems: PyReadonlyArray2<'a, usize>,
         num_vtx: usize) -> &'a PyArray2<usize> {
-        let mshline = del_msh::topology_uniform::mshline(
+        let mshline = del_msh::line2vtx::from_sepecific_edges_of_uniform_mesh(
             &elems.as_slice().unwrap(), 3,
             &[0,1,1,2,2,0], num_vtx);
         numpy::ndarray::Array2::from_shape_vec(
@@ -25,10 +25,10 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
     fn edges_of_triquad_mesh<'a>(
         py: Python<'a>,
         elem_ind: PyReadonlyArray1<'a, usize>,
-        elem_vtx: PyReadonlyArray1<'a, usize>,
+        elem2vtx: PyReadonlyArray1<'a, usize>,
         num_vtx: usize) -> &'a PyArray2<usize> {
-        let mshline = del_msh::topology_mix::meshline_from_meshtriquad(
-            &elem_ind.as_slice().unwrap(), &elem_vtx.as_slice().unwrap(), num_vtx);
+        let mshline = del_msh::line2vtx::edge_of_polygon_mesh(
+            &elem_ind.as_slice().unwrap(), &elem2vtx.as_slice().unwrap(), num_vtx);
         numpy::ndarray::Array2::from_shape_vec(
             (mshline.len()/2,2), mshline).unwrap().into_pyarray(py)
     }
@@ -36,12 +36,12 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m)]
     fn triangles_from_triquad_mesh<'a>(
         py: Python<'a>,
-        elem_ind: PyReadonlyArrayDyn<'a, usize>,
-        elem_vtx: PyReadonlyArrayDyn<'a, usize>)  -> &'a PyArray2<usize> {
-        let tri_vtx = del_msh::topology_mix::meshtri_from_meshtriquad(
-            &elem_ind.as_slice().unwrap(), &elem_vtx.as_slice().unwrap());
+        elem2vtx_idx: PyReadonlyArrayDyn<'a, usize>,
+        elem2vtx: PyReadonlyArrayDyn<'a, usize>) -> &'a PyArray2<usize> {
+        let (tri2vtx,_) = del_msh::tri2vtx::from_polygon_mesh(
+            &elem2vtx_idx.as_slice().unwrap(), &elem2vtx.as_slice().unwrap());
         numpy::ndarray::Array2::from_shape_vec(
-            (tri_vtx.len()/3,3), tri_vtx).unwrap().into_pyarray(py)
+            (tri2vtx.len()/3, 3), tri2vtx).unwrap().into_pyarray(py)
     }
 
     #[pyfn(m)]
@@ -91,26 +91,26 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
         py: Python,
         r: f32,
         nr: usize, nl: usize) -> (&PyArray2<f32>, &PyArray2<usize>) {
-        let (vtx_xyz, tri_vtx) = del_msh::primitive::sphere_tri3(
+        let (vtx2xyz, tri2vtx) = del_msh::primitive::sphere_tri3(
             r, nr, nl);
         let v = numpy::ndarray::Array2::from_shape_vec(
-            (vtx_xyz.len()/3,3), vtx_xyz).unwrap();
+            (vtx2xyz.len()/3, 3), vtx2xyz).unwrap();
         let f = numpy::ndarray::Array2::from_shape_vec(
-            (tri_vtx.len()/3,3), tri_vtx).unwrap();
+            (tri2vtx.len()/3, 3), tri2vtx).unwrap();
         (v.into_pyarray(py), f.into_pyarray(py))
     }
 
     #[pyfn(m)]
-    fn load_wavefront_obj(
+    pub fn load_wavefront_obj(
         py: Python,
-        fpath: String) -> (&PyArray2<f32>, &PyArray1<usize>, &PyArray1<i32>) {
+        fpath: String) -> (&PyArray2<f32>, &PyArray1<usize>, &PyArray1<usize>) {
         let mut obj = del_msh::io_obj::WavefrontObj::<f32>::new();
         obj.load(fpath.as_str());
         (
             numpy::ndarray::Array2::from_shape_vec(
-                (obj.vtx_xyz.len()/3,3), obj.vtx_xyz).unwrap().into_pyarray(py),
-            numpy::ndarray::Array1::from_vec(obj.elem_vtx_index).into_pyarray(py),
-            numpy::ndarray::Array1::from_vec(obj.elem_vtx_xyz).into_pyarray(py)
+                (obj.vtx2xyz.len()/3,3), obj.vtx2xyz).unwrap().into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(obj.elem2idx).into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(obj.idx2vtx_xyz).into_pyarray(py)
         )
     }
 

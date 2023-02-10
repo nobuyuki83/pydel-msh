@@ -2,6 +2,13 @@
 
 Python static 3D mesh utility library for prototyping in computer graphics research.
 
+
+## Install 
+
+```shell
+pip install del-msh
+```
+
 ## Generate Primitive Mesh
 
 
