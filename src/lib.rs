@@ -1,7 +1,7 @@
 
 use numpy::{IntoPyArray,
-            PyReadonlyArrayDyn,
-            PyArray2, PyArray1};
+            PyReadonlyArray2, PyReadonlyArrayDyn,
+            PyArray3, PyArray2, PyArray1};
 use pyo3::{pymodule, types::PyModule, PyResult, Python};
 
 mod topology;
@@ -40,11 +40,11 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m)]
     pub fn load_wavefront_obj(
         py: Python,
-        fpath: String) -> (&PyArray2<f32>, &PyArray2<f32>,
-                           &PyArray1<usize>,
-                           &PyArray1<usize>, &PyArray1<usize>) {
+        path_file: String) -> (&PyArray2<f32>, &PyArray2<f32>,
+                               &PyArray1<usize>,
+                               &PyArray1<usize>, &PyArray1<usize>) {
         let mut obj = del_msh::io_obj::WavefrontObj::<f32>::new();
-        obj.load(fpath.as_str());
+        obj.load(path_file.as_str());
         (
             numpy::ndarray::Array2::from_shape_vec(
                 (obj.vtx2xyz.len()/3,3), obj.vtx2xyz).unwrap().into_pyarray(py),
@@ -54,6 +54,48 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
             numpy::ndarray::Array1::from_vec(obj.idx2vtx_xyz).into_pyarray(py),
             numpy::ndarray::Array1::from_vec(obj.idx2vtx_uv).into_pyarray(py)
         )
+    }
+
+    #[pyfn(m)]
+    pub fn load_wavefront_obj_as_triangle_mesh(
+        py: Python,
+        path_file: String) -> (&PyArray2<usize>,
+                               &PyArray2<f32>) {
+        let (tri2vtx, vtx2xyz)
+            = del_msh::io_obj::load_tri_mesh(&path_file, Option::None);
+        (
+            numpy::ndarray::Array2::from_shape_vec(
+                (tri2vtx.len()/3,3), tri2vtx).unwrap().into_pyarray(py),
+            numpy::ndarray::Array2::from_shape_vec(
+                (vtx2xyz.len()/3,3), vtx2xyz).unwrap().into_pyarray(py)
+        )
+    }
+
+    #[pyfn(m)]
+    pub fn unidex_vertex_attribute_for_triangle_mesh<'a>(
+        py: Python<'a>,
+        tri2vtx: PyReadonlyArray2<'a, usize>,
+        vtx2xyz: PyReadonlyArray2<'a, f32>) -> &'a PyArray3<f32> {
+        let tri2xyz = del_msh::unindex::unidex_vertex_attribute_for_triangle_mesh(
+            &tri2vtx.as_slice().unwrap(),
+            &vtx2xyz.as_slice().unwrap());
+        numpy::ndarray::Array3::from_shape_vec(
+            (tri2xyz.len()/9,3,3), tri2xyz).unwrap().into_pyarray(py)
+    }
+
+    #[pyfn(m)]
+    pub fn topological_distance_on_uniform_mesh<'a>(
+        py: Python<'a>,
+        ielm_ker: usize,
+        elsuel: PyReadonlyArray2<'a, usize>) -> &'a PyArray1<usize> {
+        let num_elem = elsuel.shape()[0];
+        let elem2dist = del_msh::dijkstra::topological_distance_on_uniform_mesh(
+            ielm_ker,
+            elsuel.as_slice().unwrap(),
+            num_elem);
+        assert_eq!(elem2dist.len(), num_elem);
+        numpy::ndarray::Array1::from_shape_vec(
+            num_elem, elem2dist).unwrap().into_pyarray(py)
     }
 
     Ok(())
