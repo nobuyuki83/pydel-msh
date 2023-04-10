@@ -1,6 +1,6 @@
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2,
-            PyArray2};
+            PyArray1, PyArray2};
 use pyo3::{Python, pyfunction, types::PyModule, PyResult, wrap_pyfunction};
 
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -8,6 +8,8 @@ pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(edges_of_polygon_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(triangles_from_polygon_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(elsuel_uniform_mesh_polygon, m)?)?;
+    m.add_function(wrap_pyfunction!(elsuel_uniform_mesh_simplex, m)?)?;
+    m.add_function( wrap_pyfunction!(group_connected_element_uniform_polygon_mesh, m)?)?;
     Ok(())
 }
 
@@ -52,17 +54,49 @@ fn elsuel_uniform_mesh_polygon<'a>(
     elem2vtx: PyReadonlyArray2<'a, usize>,
     num_vtx: usize) -> &'a PyArray2<usize> {
     let num_node = elem2vtx.shape()[1];
-    let mut face2idx = vec!(0; num_node + 1);
-    let mut idx2node = vec!(0; num_node * 2);
-    for iedge in 0..num_node {
-        face2idx[iedge + 1] = (iedge + 1) * 2;
-        idx2node[iedge * 2 + 0] = iedge;
-        idx2node[iedge * 2 + 1] = (iedge + 1) % num_node;
-    }
+    let (face2idx, idx2node) = del_msh::elem2elem::face2node_of_polygon_element(num_node);
     let elsuel = del_msh::elem2elem::from_uniform_mesh2(
         &elem2vtx.as_slice().unwrap(),
         num_node, &face2idx, &idx2node, num_vtx);
     assert_eq!(elem2vtx.len(), elsuel.len());
     numpy::ndarray::Array2::from_shape_vec(
         (elsuel.len() / num_node, num_node), elsuel).unwrap().into_pyarray(py)
+}
+
+#[pyfunction]
+fn elsuel_uniform_mesh_simplex<'a>(
+    py: Python<'a>,
+    elem2vtx: PyReadonlyArray2<'a, usize>,
+    num_vtx: usize) -> &'a PyArray2<usize> {
+    let num_node = elem2vtx.shape()[1];
+    let (face2idx, idx2node)
+        = del_msh::elem2elem::face2node_of_simplex_element(num_node);
+    let elsuel = del_msh::elem2elem::from_uniform_mesh2(
+        &elem2vtx.as_slice().unwrap(),
+        num_node, &face2idx, &idx2node, num_vtx);
+    assert_eq!(elem2vtx.len(), elsuel.len());
+    numpy::ndarray::Array2::from_shape_vec(
+        (elsuel.len() / num_node, num_node), elsuel).unwrap().into_pyarray(py)
+}
+
+#[pyfunction]
+fn group_connected_element_uniform_polygon_mesh<'a>(
+    py: Python<'a>,
+    elem2vtx: PyReadonlyArray2<'a, usize>,
+    num_vtx: usize) -> (usize, &'a PyArray1<usize>)
+{
+    let num_node = elem2vtx.shape()[1];
+    let (face2idx, idx2node)
+        = del_msh::elem2elem::face2node_of_polygon_element(num_node);
+    let elem2elem_adj = del_msh::elem2elem::from_uniform_mesh2(
+        &elem2vtx.as_slice().unwrap(),
+        num_node, &face2idx, &idx2node, num_vtx);
+    let (num_group, elem2group) = del_msh::group::make_group_elem(
+        elem2vtx.as_slice().unwrap(),
+        num_node,
+        &elem2elem_adj);
+    (
+        num_group,
+        numpy::ndarray::Array1::from_vec(elem2group).into_pyarray(py)
+    )
 }
