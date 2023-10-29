@@ -1,4 +1,3 @@
-
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArrayDyn,
             PyArray3, PyArray2, PyArray1};
@@ -6,68 +5,71 @@ use pyo3::{pymodule, types::PyModule, PyResult, Python};
 
 mod topology;
 mod primitive;
+mod io_obj;
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
-
     let _ = topology::add_functions(_py, m);
     let _ = primitive::add_functions(_py, m);
+    let _ = io_obj::add_functions(_py, m);
 
     #[pyfn(m)]
-    fn unify_triangle_indices_of_xyz_and_uv<'a>(
+    fn extract_flaged_polygonal_element<'a>(
         py: Python<'a>,
-        tri2vtx_xyz: PyReadonlyArrayDyn<'a, usize>,
-        vtx2xyz: PyReadonlyArrayDyn<'a, f32>,
-        tri2vtx_uv: PyReadonlyArrayDyn<'a, usize>,
-        vtx2uv: PyReadonlyArrayDyn<'a, f32>) -> (&'a PyArray2<usize>, &'a PyArray2<f32>, &'a PyArray2<f32>) {
-        let (uni2xyz, uni2uv, tri2uni, _, _)
-            = del_msh::unify_index::unify_separate_trimesh_indexing_xyz_uv(
-            &vtx2xyz.as_slice().unwrap(),
-            &vtx2uv.as_slice().unwrap(),
-            &tri2vtx_xyz.as_slice().unwrap(),
-            &tri2vtx_uv.as_slice().unwrap());
+        elem2idx: PyReadonlyArray1<'a, usize>,
+        idx2vtx: PyReadonlyArray1<'a, usize>,
+        elem2flag: PyReadonlyArray1<'a, bool> )  -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
+        assert_eq!(elem2flag.len()+1, elem2idx.len());
+        let mut felem2jdx = vec!(0_usize; 1);
+        let mut jdx2vtx= vec!(0_usize; 0);
+        for i_elem in 0..elem2flag.len() {
+            if !*elem2flag.get(i_elem).unwrap()  { continue; }
+            let idx0 = *elem2idx.get(i_elem).unwrap();
+            let idx1 = *elem2idx.get(i_elem+1).unwrap();
+            for idx in idx0..idx1 {
+                jdx2vtx.push(*idx2vtx.get(idx).unwrap());
+            }
+            felem2jdx.push(jdx2vtx.len());
+        }
         (
-            numpy::ndarray::Array2::from_shape_vec(
-                (tri2uni.len()/3, 3), tri2uni).unwrap().into_pyarray(py),
-            numpy::ndarray::Array2::from_shape_vec(
-                (uni2xyz.len()/3, 3), uni2xyz).unwrap().into_pyarray(py),
-            numpy::ndarray::Array2::from_shape_vec(
-                (uni2uv.len()/2, 2), uni2uv).unwrap().into_pyarray(py)
+            numpy::ndarray::Array1::from_vec(felem2jdx).into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(jdx2vtx).into_pyarray(py)
         )
     }
 
     #[pyfn(m)]
-    pub fn load_wavefront_obj(
-        py: Python,
-        path_file: String) -> (&PyArray2<f32>, &PyArray2<f32>,
-                               &PyArray1<usize>,
-                               &PyArray1<usize>, &PyArray1<usize>) {
-        let mut obj = del_msh::io_obj::WavefrontObj::<f32>::new();
-        obj.load(path_file.as_str());
+    fn unify_two_indices_of_triangle_mesh<'a>(
+        py: Python<'a>,
+        tri2vtxa: PyReadonlyArrayDyn<'a, usize>,
+        tri2vtxb: PyReadonlyArrayDyn<'a, usize>) -> (&'a PyArray2<usize>, &'a PyArray1<usize>, &'a PyArray1<usize>) {
+        let (tri2uni, uni2vtxxyz, uni2vtxuv)
+            = del_msh::unify_index::unify_two_indices_of_triangle_mesh(
+            &tri2vtxa.as_slice().unwrap(),
+            &tri2vtxb.as_slice().unwrap());
         (
             numpy::ndarray::Array2::from_shape_vec(
-                (obj.vtx2xyz.len()/3,3), obj.vtx2xyz).unwrap().into_pyarray(py),
-            numpy::ndarray::Array2::from_shape_vec(
-                (obj.vtx2uv.len()/2,2), obj.vtx2uv).unwrap().into_pyarray(py),
-            numpy::ndarray::Array1::from_vec(obj.elem2idx).into_pyarray(py),
-            numpy::ndarray::Array1::from_vec(obj.idx2vtx_xyz).into_pyarray(py),
-            numpy::ndarray::Array1::from_vec(obj.idx2vtx_uv).into_pyarray(py)
+                (tri2uni.len() / 3, 3), tri2uni).unwrap().into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(uni2vtxxyz).into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(uni2vtxuv).into_pyarray(py),
         )
     }
 
     #[pyfn(m)]
-    pub fn load_wavefront_obj_as_triangle_mesh(
-        py: Python,
-        path_file: String) -> (&PyArray2<usize>,
-                               &PyArray2<f32>) {
-        let (tri2vtx, vtx2xyz)
-            = del_msh::io_obj::load_tri_mesh(&path_file, Option::None);
+    fn unify_two_indices_of_polygon_mesh<'a>(
+        py: Python<'a>,
+        elem2idx: PyReadonlyArrayDyn<'a, usize>,
+        idx2vtxa: PyReadonlyArrayDyn<'a, usize>,
+        idx2vtxb: PyReadonlyArrayDyn<'a, usize>) -> (&'a PyArray1<usize>, &'a PyArray1<usize>, &'a PyArray1<usize>) {
+        let (idx2uni, uni2vtxa, uni2vtxb)
+            = del_msh::unify_index::unify_two_indices_of_polygon_mesh(
+            &elem2idx.as_slice().unwrap(),
+            &idx2vtxa.as_slice().unwrap(),
+            &idx2vtxb.as_slice().unwrap());
         (
-            numpy::ndarray::Array2::from_shape_vec(
-                (tri2vtx.len()/3,3), tri2vtx).unwrap().into_pyarray(py),
-            numpy::ndarray::Array2::from_shape_vec(
-                (vtx2xyz.len()/3,3), vtx2xyz).unwrap().into_pyarray(py)
+            numpy::ndarray::Array1::from_vec(idx2uni).into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(uni2vtxa).into_pyarray(py),
+            numpy::ndarray::Array1::from_vec(uni2vtxb).into_pyarray(py)
         )
     }
 
@@ -82,7 +84,7 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
             &vtx2xyz.as_slice().unwrap(),
             num_val);
         numpy::ndarray::Array3::from_shape_vec(
-            (tri2xyz.len()/(3*num_val),3,num_val), tri2xyz).unwrap().into_pyarray(py)
+            (tri2xyz.len() / (3 * num_val), 3, num_val), tri2xyz).unwrap().into_pyarray(py)
     }
 
     #[pyfn(m)]
@@ -104,12 +106,12 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
     pub fn areas_of_triangles_of_mesh<'a>(
         py: Python<'a>,
         tri2vtx: PyReadonlyArray2<'a, usize>,
-        vtx2xyz: PyReadonlyArray2<'a, f32>
+        vtx2xyz: PyReadonlyArray2<'a, f32>,
     ) -> &'a PyArray1<f32> {
         assert_eq!(vtx2xyz.shape()[1], 3);
         let tri2area = del_msh::sampling::areas_of_triangles_of_mesh(
             tri2vtx.as_slice().unwrap(),
-            vtx2xyz.as_slice().unwrap() );
+            vtx2xyz.as_slice().unwrap());
         numpy::ndarray::Array1::from_shape_vec(
             tri2vtx.shape()[0], tri2area).unwrap().into_pyarray(py)
     }
