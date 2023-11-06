@@ -18,7 +18,7 @@ pub fn load_wavefront_obj(
                            &PyArray1<usize>, PyObject,
                            &PyArray1<usize>, PyObject, PyObject) {
     let mut obj = del_msh::io_obj::WavefrontObj::<f32>::new();
-    obj.load(path_file.as_str());
+    obj.load(&path_file);
     (
         numpy::ndarray::Array2::from_shape_vec(
             (obj.vtx2xyz.len()/3,3), obj.vtx2xyz).unwrap().into_pyarray(py),
