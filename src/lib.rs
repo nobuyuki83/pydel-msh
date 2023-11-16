@@ -8,25 +8,27 @@ mod primitive;
 mod io_obj;
 
 /// A Python module implemented in Rust.
+
 #[pymodule]
-fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
+#[pyo3(name="del_msh")]
+fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     let _ = topology::add_functions(_py, m);
     let _ = primitive::add_functions(_py, m);
     let _ = io_obj::add_functions(_py, m);
 
     #[pyfn(m)]
-    fn extract_flaged_polygonal_element<'a>(
+    fn extract_flagged_polygonal_element<'a>(
         py: Python<'a>,
         elem2idx: PyReadonlyArray1<'a, usize>,
         idx2vtx: PyReadonlyArray1<'a, usize>,
-        elem2flag: PyReadonlyArray1<'a, bool> )  -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
-        assert_eq!(elem2flag.len()+1, elem2idx.len());
+        elem2flag: PyReadonlyArray1<'a, bool>) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
+        assert_eq!(elem2flag.len() + 1, elem2idx.len());
         let mut felem2jdx = vec!(0_usize; 1);
-        let mut jdx2vtx= vec!(0_usize; 0);
+        let mut jdx2vtx = vec!(0_usize; 0);
         for i_elem in 0..elem2flag.len() {
-            if !*elem2flag.get(i_elem).unwrap()  { continue; }
+            if !*elem2flag.get(i_elem).unwrap() { continue; }
             let idx0 = *elem2idx.get(i_elem).unwrap();
-            let idx1 = *elem2idx.get(i_elem+1).unwrap();
+            let idx1 = *elem2idx.get(i_elem + 1).unwrap();
             for idx in idx0..idx1 {
                 jdx2vtx.push(*idx2vtx.get(idx).unwrap());
             }
@@ -84,7 +86,8 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
             &vtx2xyz.as_slice().unwrap(),
             num_val);
         numpy::ndarray::Array3::from_shape_vec(
-            (tri2xyz.len() / (3 * num_val), 3, num_val), tri2xyz).unwrap().into_pyarray(py)
+            (tri2xyz.len() / (3 * num_val), 3, num_val), tri2xyz).unwrap()
+            .into_pyarray(py)
     }
 
     #[pyfn(m)]
@@ -108,21 +111,30 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
         tri2vtx: PyReadonlyArray2<'a, usize>,
         vtx2xyz: PyReadonlyArray2<'a, f32>,
     ) -> &'a PyArray1<f32> {
-        assert_eq!(vtx2xyz.shape()[1], 3);
-        let tri2area = del_msh::sampling::areas_of_triangles_of_mesh(
-            tri2vtx.as_slice().unwrap(),
-            vtx2xyz.as_slice().unwrap());
+        let tri2area = match vtx2xyz.shape()[1] {
+            2 => {
+                del_msh::trimesh::areas_of_trimesh2(
+                    tri2vtx.as_slice().unwrap(),
+                    vtx2xyz.as_slice().unwrap())
+            },
+            3 => {
+                del_msh::trimesh::areas_of_trimesh3(
+                    tri2vtx.as_slice().unwrap(),
+                    vtx2xyz.as_slice().unwrap())
+            },
+            _ => { panic!(); }
+        };
         numpy::ndarray::Array1::from_shape_vec(
             tri2vtx.shape()[0], tri2area).unwrap().into_pyarray(py)
     }
 
     #[pyfn(m)]
-    pub fn sample_uniform(
+    pub fn sample_uniformly_trimesh(
         _py: Python,
         cumsum_tri2area: PyReadonlyArray1<f32>,
         val01_a: f32,
         val01_b: f32) -> (usize, f32, f32) {
-        del_msh::sampling::sample_uniform(
+        del_msh::sampling::sample_uniformly_trimesh(
             cumsum_tri2area.as_slice().unwrap(),
             val01_a, val01_b)
     }
@@ -143,6 +155,51 @@ fn del_msh(_py: Python, m: &PyModule) -> PyResult<()> {
             num_vtx_new,
             numpy::ndarray::Array1::from_vec(vtx2vtx_new).into_pyarray(py)
         )
+    }
+
+    #[pyfn(m)]
+    pub fn extend_trimesh<'a>(
+        py: Python<'a>,
+        tri2vtx: PyReadonlyArray2<'a, usize>,
+        vtx2xyz: PyReadonlyArray2<'a, f64>,
+        step: f64,
+        niter: usize) -> &'a PyArray2<f64> {
+        let tri2vtx = tri2vtx.as_slice().unwrap();
+        let vtx2xyz = vtx2xyz.as_slice().unwrap();
+        let vtx2nrm = del_msh::trimesh::normal(tri2vtx, vtx2xyz);
+        let num_vtx = vtx2xyz.len() / 3;
+        let mut a= vec!(0_f64; num_vtx*3);
+        for i_vtx in 0..num_vtx {
+            let mut p0 = [
+                vtx2xyz[i_vtx * 3 + 0] + step * vtx2nrm[i_vtx * 3 + 0],
+                vtx2xyz[i_vtx * 3 + 1] + step * vtx2nrm[i_vtx * 3 + 1],
+                vtx2xyz[i_vtx * 3 + 2] + step * vtx2nrm[i_vtx * 3 + 2]];
+            for _ in 1..niter {
+                p0 = del_msh::trimesh::extend_avoid_intersection(
+                    tri2vtx, vtx2xyz, &p0, step);
+            }
+            a[i_vtx*3+0] = p0[0];
+            a[i_vtx*3+1] = p0[1];
+            a[i_vtx*3+2] = p0[2];
+        }
+        numpy::ndarray::Array2::<f64>::from_shape_vec((num_vtx,3), a).unwrap().into_pyarray(py)
+    }
+
+    #[pyfn(m)]
+    pub fn extend_polyedge<'a>(
+        py: Python<'a>,
+        lpvtx2xyz: PyReadonlyArray2<'a, f64>,
+        step: f64,
+        niter: usize) -> (&'a PyArray2<usize>, &'a PyArray2<f64>) {
+        assert_eq!(lpvtx2xyz.shape()[1], 3);
+        let lpvtx2bin = del_msh::edgeloop::smooth_frame(lpvtx2xyz.as_slice().unwrap());
+        let (tri2vtx, vtx2xyz) = del_msh::edgeloop::tube_mesh_avoid_intersection(
+            lpvtx2xyz.as_slice().unwrap(), &lpvtx2bin, step.into(), niter);
+        let v1 = numpy::ndarray::Array2::from_shape_vec(
+            (tri2vtx.len() / 3, 3), tri2vtx).unwrap().into_pyarray(py);
+        let v2 = numpy::ndarray::Array2::from_shape_vec(
+            (vtx2xyz.len() / 3, 3), vtx2xyz).unwrap().into_pyarray(py);
+        (v1, v2)
     }
 
     Ok(())
