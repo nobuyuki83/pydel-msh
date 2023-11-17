@@ -2,7 +2,6 @@ use numpy::{IntoPyArray,
             PyArray2, PyArray1};
 use pyo3::{pyfunction, types::PyModule, PyResult, Python, PyObject, ToPyObject, wrap_pyfunction};
 
-
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(load_wavefront_obj, m)?)?;
     m.add_function(wrap_pyfunction!(load_wavefront_obj_as_triangle_mesh, m)?)?;

@@ -28,11 +28,11 @@ class WavefrontObj:
         return edges_of_polygon_mesh(self.elem2idx, self.idx2vtxxyz, self.vtxxyz2xyz.shape[0])
 
     def tris(self):
-        from del_msh import triangles_from_polygon_mesh
+        from .del_msh import triangles_from_polygon_mesh
         return triangles_from_polygon_mesh(self.elem2idx, self.idx2vtxxyz)
 
     def triangle_mesh_with_uv(self):
-        from del_msh import triangles_from_polygon_mesh, unify_two_indices_of_triangle_mesh
+        from .del_msh import triangles_from_polygon_mesh, unify_two_indices_of_triangle_mesh
 
         tri2vtxxyz = triangles_from_polygon_mesh(self.elem2idx, self.idx2vtxxyz)
         tri2vtxuv = triangles_from_polygon_mesh(self.elem2idx, self.idx2vtxuv)

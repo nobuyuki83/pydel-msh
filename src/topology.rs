@@ -1,9 +1,10 @@
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2,
             PyArray1, PyArray2};
-use pyo3::{Python, pyfunction, types::PyModule, PyResult, wrap_pyfunction};
+use pyo3::{Python, pyfunction, types::PyModule, PyResult};
 
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
+    use pyo3::wrap_pyfunction;
     m.add_function(wrap_pyfunction!(edges_of_uniform_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(edges_of_polygon_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(triangles_from_polygon_mesh, m)?)?;

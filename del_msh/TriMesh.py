@@ -1,4 +1,4 @@
-import pathlib, typing
+import typing
 
 import numpy.typing
 
@@ -30,11 +30,11 @@ def sphere(radius=1., ndiv_latitude=32, ndiv_longtitude=32):
 
 
 def load_wavefront_obj(
-        path_file: pathlib.Path,
+        path_file: str,
         is_centerize=False,
         normalized_size: typing.Optional[float] = None):
     from .del_msh import load_wavefront_obj_as_triangle_mesh
-    tri2vtx, vtx2xyz = load_wavefront_obj_as_triangle_mesh(str(path_file))
+    tri2vtx, vtx2xyz = load_wavefront_obj_as_triangle_mesh(path_file)
     if is_centerize:
         vtx2xyz[:] -= (vtx2xyz.max(axis=0) + vtx2xyz.min(axis=0)) * 0.5
     if type(normalized_size) == float:
@@ -61,6 +61,19 @@ def areas(tri2vtx, vtx2xyz):
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
 
+#############
+
+def first_intersection_ray(src, dir, tri2vtx, vtx2xyz):
+    from .del_msh import first_intersection_ray_meshtri3
+    return first_intersection_ray_meshtri3(src, dir, tri2vtx, vtx2xyz)
+
+
+def pick_vertex(src, dir, tri2vtx, vtx2xyz):
+    from .del_msh import pick_vertex_meshtri3
+    return pick_vertex_meshtri3(src, dir, tri2vtx, vtx2xyz)
+
+
+###############
 
 def position(
         tri2vtx: numpy.typing.NDArray, vtx2xyz: numpy.typing.NDArray,

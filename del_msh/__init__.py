@@ -1,4 +1,3 @@
-from .del_msh import*
 import numpy
 
 def centerize_scale_points(vtxxyz2xyz, scale = 1.0):
