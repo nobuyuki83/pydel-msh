@@ -5,6 +5,7 @@ use pyo3::{Python, pyfunction, types::PyModule, PyResult};
 
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     use pyo3::wrap_pyfunction;
+    m.add_function(wrap_pyfunction!(vtx2vtx_trimesh, m)?)?;
     m.add_function(wrap_pyfunction!(edges_of_uniform_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(edges_of_polygon_mesh, m)?)?;
     m.add_function(wrap_pyfunction!(triangles_from_polygon_mesh, m)?)?;
@@ -47,6 +48,21 @@ fn triangles_from_polygon_mesh<'a>(
         &elem2idx.as_slice().unwrap(), &idx2vtx.as_slice().unwrap());
     numpy::ndarray::Array2::from_shape_vec(
         (tri2vtx.len() / 3, 3), tri2vtx).unwrap().into_pyarray(py)
+}
+
+#[pyfunction]
+fn vtx2vtx_trimesh<'a>(
+    py: Python<'a>,
+    tri2vtx: PyReadonlyArray2<'a, usize>,
+    num_vtx: usize ) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
+    assert_eq!(tri2vtx.shape()[1], 3);
+    let (vtx2idx, idx2vtx) = del_msh::vtx2vtx::from_uniform_mesh2(
+        tri2vtx.as_slice().unwrap(), 3,
+        num_vtx);
+    (
+        numpy::ndarray::Array1::from_vec(vtx2idx).into_pyarray(py),
+        numpy::ndarray::Array1::from_vec(idx2vtx).into_pyarray(py)
+    )
 }
 
 #[pyfunction]

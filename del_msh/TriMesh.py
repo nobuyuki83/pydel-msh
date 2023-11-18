@@ -1,13 +1,33 @@
 import typing
-
 import numpy.typing
 
 
-def edges(tri2vtx: numpy.typing.ArrayLike, num_vtx: int):
+def edge2vtx(tri2vtx: numpy.typing.ArrayLike, num_vtx: int):
     assert len(tri2vtx.shape) == 2
+    assert tri2vtx.shape[1] == 3
     from .del_msh import edges_of_uniform_mesh
     return edges_of_uniform_mesh(tri2vtx, num_vtx)
 
+
+def vtx2vtx(tri2vtx, num_vtx: int):
+    assert len(tri2vtx.shape) == 2
+    assert tri2vtx.shape[1] == 3
+    from .del_msh import vtx2vtx_trimesh
+    return vtx2vtx_trimesh(tri2vtx, num_vtx)
+
+
+def triangle_adjacency(tri2vtx, num_vtx: int):
+    from .del_msh import elsuel_uniform_mesh_polygon
+    return elsuel_uniform_mesh_polygon(tri2vtx, num_vtx)
+
+
+def topological_distance_of_tris(idx_tri, tri2tri):
+    from .del_msh import topological_distance_on_uniform_mesh
+    return topological_distance_on_uniform_mesh(idx_tri, tri2tri)
+
+# above: topology
+# ------------------------
+# below: primitive
 
 def torus(major_radius=1.0, minor_radius=0.4, ndiv_major_radius=32, ndiv_minor_radius=32):
     from .del_msh import torus_meshtri3
@@ -47,21 +67,14 @@ def unindexing(tri2vtx, vtx2xyz):
     return unidex_vertex_attribute_for_triangle_mesh(tri2vtx, vtx2xyz)
 
 
-def triangle_adjacency(tri2vtx, num_vtx: int):
-    from .del_msh import elsuel_uniform_mesh_polygon
-    return elsuel_uniform_mesh_polygon(tri2vtx, num_vtx)
-
-
-def topological_distance_of_tris(idx_tri, tri2tri):
-    from .del_msh import topological_distance_on_uniform_mesh
-    return topological_distance_on_uniform_mesh(idx_tri, tri2tri)
-
-
 def areas(tri2vtx, vtx2xyz):
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
 
-#############
+
+# above: property
+# ---------------------
+# below: search
 
 def first_intersection_ray(src, dir, tri2vtx, vtx2xyz):
     from .del_msh import first_intersection_ray_meshtri3
@@ -73,7 +86,9 @@ def pick_vertex(src, dir, tri2vtx, vtx2xyz):
     return pick_vertex_meshtri3(src, dir, tri2vtx, vtx2xyz)
 
 
-###############
+# above: search
+# ------------------------
+# below: sampling
 
 def position(
         tri2vtx: numpy.typing.NDArray, vtx2xyz: numpy.typing.NDArray,
@@ -86,18 +101,33 @@ def position(
     p2 = vtx2xyz[i2]
     return r0 * p0 + r1 * p1 + (1. - r0 - r1) * p2
 
+
 def sample(cumsum_area: numpy.typing.NDArray, r0: float, r1: float):
     from .del_msh import sample_uniformly_trimesh
     return sample_uniformly_trimesh(cumsum_area, r0, r1)
 
 
-def sample_many(tri2vtx, vtx2xy, N:int):
+def sample_many(tri2vtx, vtx2xy, num_sample: int):
     import random
     tri2area = areas(tri2vtx, vtx2xy)
     cumsum_area = numpy.cumsum(numpy.append(0., tri2area)).astype(numpy.float32)
     xys = []
-    for i in range(N):
+    for i in range(num_sample):
         smpl_i = sample(cumsum_area, random.random(), random.random())
         pos_i = position(tri2vtx, vtx2xy, *smpl_i)
         xys.append(pos_i.tolist())
     return numpy.array(xys)
+
+
+###################################
+
+def merge_hessian_mesh_laplacian(
+        tri2vtx, vtx2xyz,
+        row2idx,
+        idx2col,
+        row2val, idx2val):
+    from .del_msh import merge_hessian_mesh_laplacian_on_trimesh
+    merge_hessian_mesh_laplacian_on_trimesh(
+        tri2vtx, vtx2xyz,
+        row2idx, idx2col,
+        row2val, idx2val)

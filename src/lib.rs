@@ -1,7 +1,7 @@
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2,
             PyArray3, PyArray2, PyArray1};
-use pyo3::{pymodule, types::PyModule, PyResult, Python};
+use pyo3::{types::PyModule, PyResult, Python};
 
 mod topology;
 mod primitive;
@@ -11,75 +11,10 @@ mod unindex;
 mod dijkstra;
 mod sampling;
 mod extract;
+mod trimesh3_search;
 
 /// A Python module implemented in Rust.
 
-fn squared_dist(p0: &[f32], p1: &[f32]) -> f32 {
-    (p0[0] - p1[0]) * (p0[0] - p1[0])
-        + (p0[1] - p1[1]) * (p0[1] - p1[1])
-        + (p0[2] - p1[2]) * (p0[2] - p1[2])
-}
-
-#[pyo3::pyfunction]
-fn first_intersection_ray_meshtri3<'a>(
-    py: Python<'a>,
-    src: PyReadonlyArray1<'a, f32>,
-    dir: PyReadonlyArray1<'a, f32>,
-    vtx2xyz: PyReadonlyArray2<'a, f32>,
-    tri2vtx: PyReadonlyArray2<'a, usize>) -> (&'a PyArray1<f32>, i64)
-{
-    let res = del_msh::trimesh3_search::first_intersection_ray(
-        src.as_slice().unwrap(),
-        dir.as_slice().unwrap(),
-        vtx2xyz.as_slice().unwrap(),
-        tri2vtx.as_slice().unwrap());
-    match res {
-        None => {
-            let a = PyArray1::<f32>::zeros(py, 3, true);
-            return (a, -1);
-        }
-        Some(postri) => {
-            let a = PyArray1::<f32>::from_slice(py, &postri.0);
-            return (a, postri.1 as i64);
-        }
-    }
-}
-
-#[pyo3::pyfunction]
-fn pick_vertex_meshtri3<'a>(
-    src: PyReadonlyArray1<'a, f32>,
-    dir: PyReadonlyArray1<'a, f32>,
-    vtx2xyz: PyReadonlyArray2<'a, f32>,
-    tri2vtx: PyReadonlyArray2<'a, usize>) -> i64
-{
-    let res = del_msh::trimesh3_search::first_intersection_ray(
-        src.as_slice().unwrap(),
-        dir.as_slice().unwrap(),
-        vtx2xyz.as_slice().unwrap(),
-        tri2vtx.as_slice().unwrap());
-    match res {
-        None => {
-            return -1;
-        }
-        Some(postri) => {
-            let pos = postri.0;
-            let idx_tri = postri.1;
-            let i0 = tri2vtx.get([idx_tri, 0]).unwrap();
-            let i1 = tri2vtx.get([idx_tri, 1]).unwrap();
-            let i2 = tri2vtx.get([idx_tri, 2]).unwrap();
-            let q0 = &vtx2xyz.as_slice().unwrap()[i0 * 3..i0 * 3 + 3];
-            let q1 = &vtx2xyz.as_slice().unwrap()[i1 * 3..i1 * 3 + 3];
-            let q2 = &vtx2xyz.as_slice().unwrap()[i2 * 3..i2 * 3 + 3];
-            let d0 = squared_dist(&pos, q0);
-            let d1 = squared_dist(&pos, q1);
-            let d2 = squared_dist(&pos, q2);
-            if d0 <= d1 && d0 <= d2 { return *i0 as i64; }
-            if d1 <= d2 && d1 <= d0 { return *i1 as i64; }
-            if d2 <= d0 && d2 <= d1 { return *i2 as i64; }
-            return -1;
-        }
-    }
-}
 
 #[pyo3::pyclass]
 struct MyClass {
@@ -109,7 +44,7 @@ impl MyClass {
 /* ------------------------ */
 
 
-#[pymodule]
+#[pyo3::pymodule]
 #[pyo3(name = "del_msh")]
 fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     let _ = topology::add_functions(_py, m);
@@ -120,6 +55,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     let _ = dijkstra::add_functions(_py, m);
     let _ = sampling::add_functions(_py, m);
     let _ = extract::add_functions(_py, m);
+    let _ = trimesh3_search::add_functions(_py, m);
 
     #[pyfn(m)]
     pub fn areas_of_triangles_of_mesh<'a>(
@@ -181,8 +117,8 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         step: f64,
         niter: usize) -> (&'a PyArray2<usize>, &'a PyArray2<f64>) {
         assert_eq!(lpvtx2xyz.shape()[1], 3);
-        let lpvtx2bin = del_msh::edgeloop::smooth_frame(lpvtx2xyz.as_slice().unwrap());
-        let (tri2vtx, vtx2xyz) = del_msh::edgeloop::tube_mesh_avoid_intersection(
+        let lpvtx2bin = del_msh::polyloop::smooth_frame(lpvtx2xyz.as_slice().unwrap());
+        let (tri2vtx, vtx2xyz) = del_msh::polyloop::tube_mesh_avoid_intersection(
             lpvtx2xyz.as_slice().unwrap(), &lpvtx2bin, step.into(), niter);
         let v1 = numpy::ndarray::Array2::from_shape_vec(
             (tri2vtx.len() / 3, 3), tri2vtx).unwrap().into_pyarray(py);
@@ -191,8 +127,43 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         (v1, v2)
     }
 
-    m.add_function(pyo3::wrap_pyfunction!(first_intersection_ray_meshtri3, m)?)?;
-    m.add_function(pyo3::wrap_pyfunction!(pick_vertex_meshtri3, m)?)?;
+    #[pyfn(m)]
+    pub fn merge_hessian_mesh_laplacian_on_trimesh<'a>(
+        _py: Python<'a>,
+        tri2vtx: PyReadonlyArray2<'a, usize>,
+        vtx2xyz: PyReadonlyArray2<'a, f64>,
+        row2idx: PyReadonlyArray1<'a, usize>,
+        idx2col: PyReadonlyArray1<'a, usize>,
+        mut row2val: numpy::PyReadwriteArray1<'a, f64>,
+        mut idx2val: numpy::PyReadwriteArray1<'a, f64>)
+    {
+        let mut merge_buffer = vec!(0_usize;0);
+        let tri2vtx = tri2vtx.as_slice().unwrap();
+        let vtx2xyz = vtx2xyz.as_slice().unwrap();
+        let row2idx = row2idx.as_slice().unwrap();
+        let idx2col = idx2col.as_slice().unwrap();
+        let row2val = row2val.as_slice_mut().unwrap();
+        let idx2val = idx2val.as_slice_mut().unwrap();
+        for node2vtx in tri2vtx.chunks(3) {
+            let (i0,i1,i2) = (node2vtx[0], node2vtx[1], node2vtx[2]);
+            let v0 = &vtx2xyz[i0*3..i0*3+3];
+            let v1 = &vtx2xyz[i1*3..i1*3+3];
+            let v2 = &vtx2xyz[i2*3..i2*3+3];
+            let cots = del_geo::tri3::cot_(v0,v1,v2);
+            let emat: [f64; 9] = [
+                cots[1] + cots[2], -cots[2], -cots[1],
+                -cots[2], cots[2] + cots[0], -cots[0],
+                -cots[1], -cots[0], cots[0] + cots[1]];
+            del_msh::merge(
+                node2vtx, node2vtx, &emat,
+                row2idx, idx2col,
+                row2val, idx2val,
+                &mut merge_buffer);
+        }
+    }
+
+
+
     m.add_class::<MyClass>()?;
 
     Ok(())
