@@ -1,6 +1,7 @@
 import typing
 import numpy
 
+
 class WavefrontObj:
 
     def __init__(self):
@@ -24,8 +25,8 @@ class WavefrontObj:
         self.vtxxyz2xyz *= scale / (self.vtxxyz2xyz.max(axis=0) - self.vtxxyz2xyz.min(axis=0)).max()
 
     def edges(self):
-        from .del_msh import edges_of_polygon_mesh
-        return edges_of_polygon_mesh(self.elem2idx, self.idx2vtxxyz, self.vtxxyz2xyz.shape[0])
+        from .del_msh import edge2vtx_polygon_mesh
+        return edge2vtx_polygon_mesh(self.elem2idx, self.idx2vtxxyz, self.vtxxyz2xyz.shape[0])
 
     def tris(self):
         from .del_msh import triangles_from_polygon_mesh
@@ -58,23 +59,22 @@ class WavefrontObj:
         uni2nrm[:, :] = self.vtxnrm2nrm[uni2vtxnrm[:], :]
         return idx2uni, uni2xyz, uni2nrm, uni2vtxxyz, uni2vtxnrm
 
-
     def extract_polygon_mesh_of_material(self, mtl_idx):
         from .del_msh import extract_flagged_polygonal_element
         return extract_flagged_polygonal_element(
             self.elem2idx, self.idx2vtxxyz, self.elem2mtl[:] == mtl_idx)
 
 
-def load(file_path: str, is_centerize = False, normalized_size: typing.Optional[float]=None):
+def load(file_path: str, is_centerize=False, normalized_size: typing.Optional[float] = None):
     from .del_msh import load_wavefront_obj
     o = WavefrontObj()
     o.vtxxyz2xyz, o.vtxuv2uv, o.vtxnrm2nrm, \
-    o.elem2idx, o.idx2vtxxyz, o.idx2vtxuv, o.idx2vtxnrm, \
-    o.elem2group, o.group2name, \
-    o.elem2mtl, o.mtl2name, o.mtl_file_name = load_wavefront_obj(file_path)
+        o.elem2idx, o.idx2vtxxyz, o.idx2vtxuv, o.idx2vtxnrm, \
+        o.elem2group, o.group2name, \
+        o.elem2mtl, o.mtl2name, o.mtl_file_name = load_wavefront_obj(file_path)
     if is_centerize:
         o.centerize()
-    if type(normalized_size) == float:
+    if isinstance(normalized_size, float):
         o.normalize_size(normalized_size)
     return o
 

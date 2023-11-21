@@ -12,6 +12,10 @@ mod dijkstra;
 mod sampling;
 mod extract;
 mod trimesh3_search;
+mod edge2vtx;
+mod elem2elem;
+mod dtri;
+mod polyloop;
 
 /// A Python module implemented in Rust.
 
@@ -24,13 +28,13 @@ struct MyClass {
 #[pyo3::pymethods]
 impl MyClass {
     #[new]
-    fn new<'a>(vtx2xy: PyReadonlyArray2<'a, f32>) -> Self {
+    fn new(vtx2xy: PyReadonlyArray2<f32>) -> Self {
         let slice = vtx2xy.as_slice().unwrap();
         let points_ = nalgebra::Matrix2xX::<f32>::from_column_slice(slice);
         let tree = del_msh::kdtree2::KdTree2::from_matrix(&points_);
         vtx2xy.as_slice().unwrap();
         MyClass {
-            tree: tree
+            tree
         }
     }
 
@@ -48,14 +52,18 @@ impl MyClass {
 #[pyo3(name = "del_msh")]
 fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     let _ = topology::add_functions(_py, m);
-    let _ = primitive::add_functions(_py, m);
-    let _ = io_obj::add_functions(_py, m);
+    let _ = edge2vtx::add_functions(_py, m);
+    let _ = elem2elem::add_functions(_py, m);
     let _ = unify_index::add_functions(_py, m);
     let _ = unindex::add_functions(_py, m);
     let _ = dijkstra::add_functions(_py, m);
+    let _ = primitive::add_functions(_py, m);
+    let _ = io_obj::add_functions(_py, m);
     let _ = sampling::add_functions(_py, m);
     let _ = extract::add_functions(_py, m);
     let _ = trimesh3_search::add_functions(_py, m);
+    let _ = dtri::add_functions(_py, m);
+    let _ = polyloop::add_functions(_py, m);
 
     #[pyfn(m)]
     pub fn areas_of_triangles_of_mesh<'a>(
@@ -79,7 +87,6 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         numpy::ndarray::Array1::from_shape_vec(
             tri2vtx.shape()[0], tri2area).unwrap().into_pyarray(py)
     }
-
 
 
     #[pyfn(m)]
@@ -119,7 +126,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         assert_eq!(lpvtx2xyz.shape()[1], 3);
         let lpvtx2bin = del_msh::polyloop::smooth_frame(lpvtx2xyz.as_slice().unwrap());
         let (tri2vtx, vtx2xyz) = del_msh::polyloop::tube_mesh_avoid_intersection(
-            lpvtx2xyz.as_slice().unwrap(), &lpvtx2bin, step.into(), niter);
+            lpvtx2xyz.as_slice().unwrap(), &lpvtx2bin, step, niter);
         let v1 = numpy::ndarray::Array2::from_shape_vec(
             (tri2vtx.len() / 3, 3), tri2vtx).unwrap().into_pyarray(py);
         let v2 = numpy::ndarray::Array2::from_shape_vec(

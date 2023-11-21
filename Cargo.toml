@@ -1,6 +1,6 @@
 [package]
 name = "pydel-msh"
-version = "0.1.14"
+version = "0.1.15"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,8 +12,11 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.20.0", features = ["extension-module"] }
 nalgebra = "0.32.3"
 numpy = "0.20.0"
-#del-msh = {path="../del-msh"}
-del-msh = "0.1.15"
+# del-msh = {path="../del-msh"}
+del-msh = "0.1.17"
 
 # del-geo = {path="../del-geo"}
-del-geo = "0.1.7"
+del-geo = "0.1.9"
+
+# del-dtri = {path="../del-dtri"}
+del-dtri = "0.1.3"

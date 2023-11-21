@@ -2,6 +2,7 @@ use numpy::{IntoPyArray,
             PyArray1,
             PyReadonlyArray2};
 use pyo3::{types::PyModule, PyResult, Python};
+
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     use pyo3::wrap_pyfunction;
     m.add_function(wrap_pyfunction!(topological_distance_on_uniform_mesh, m)?)?;

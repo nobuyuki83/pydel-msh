@@ -73,5 +73,5 @@ docs/_build/
 
 .ipynb_checkpoints
 
-.github
+# .github
 Cargo.lock

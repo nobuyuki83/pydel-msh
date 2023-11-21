@@ -43,7 +43,7 @@ pub fn load_wavefront_obj_as_triangle_mesh(
     path_file: String) -> (&PyArray2<usize>,
                            &PyArray2<f32>) {
     let (tri2vtx, vtx2xyz)
-        = del_msh::io_obj::load_tri_mesh(&path_file, Option::None);
+        = del_msh::io_obj::load_tri_mesh(path_file, Option::None);
     (
         numpy::ndarray::Array2::from_shape_vec(
             (tri2vtx.len()/3,3), tri2vtx).unwrap().into_pyarray(py),

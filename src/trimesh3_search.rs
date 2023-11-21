@@ -30,11 +30,11 @@ fn first_intersection_ray_meshtri3<'a>(
     match res {
         None => {
             let a = PyArray1::<f32>::zeros(py, 3, true);
-            return (a, -1);
+            (a, -1)
         }
         Some(postri) => {
             let a = PyArray1::<f32>::from_slice(py, &postri.0);
-            return (a, postri.1 as i64);
+            (a, postri.1 as i64)
         }
     }
 }
@@ -53,7 +53,7 @@ fn pick_vertex_meshtri3<'a>(
         tri2vtx.as_slice().unwrap());
     match res {
         None => {
-            return -1;
+            -1
         }
         Some(postri) => {
             let pos = postri.0;
@@ -70,7 +70,7 @@ fn pick_vertex_meshtri3<'a>(
             if d0 <= d1 && d0 <= d2 { return *i0 as i64; }
             if d1 <= d2 && d1 <= d0 { return *i1 as i64; }
             if d2 <= d0 && d2 <= d1 { return *i2 as i64; }
-            return -1;
+            -1
         }
     }
 }

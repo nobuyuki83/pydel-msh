@@ -28,6 +28,7 @@ pub fn extract<'a>(
     )
 }
 
+
 #[pyo3::pyfunction]
 fn extract_flagged_polygonal_element<'a>(
     py: Python<'a>,
@@ -35,17 +36,11 @@ fn extract_flagged_polygonal_element<'a>(
     idx2vtx: PyReadonlyArray1<'a, usize>,
     elem2flag: PyReadonlyArray1<'a, bool>) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
     assert_eq!(elem2flag.len() + 1, elem2idx.len());
-    let mut felem2jdx = vec!(0_usize; 1);
-    let mut jdx2vtx = vec!(0_usize; 0);
-    for i_elem in 0..elem2flag.len() {
-        if !*elem2flag.get(i_elem).unwrap() { continue; }
-        let idx0 = *elem2idx.get(i_elem).unwrap();
-        let idx1 = *elem2idx.get(i_elem + 1).unwrap();
-        for idx in idx0..idx1 {
-            jdx2vtx.push(*idx2vtx.get(idx).unwrap());
-        }
-        felem2jdx.push(jdx2vtx.len());
-    }
+    let elem2flag = elem2flag.as_slice().unwrap();
+    let elem2idx = elem2idx.as_slice().unwrap();
+    let idx2vtx = idx2vtx.as_slice().unwrap();
+    let (felem2jdx, jdx2vtx)
+        = del_msh::extract::from_polygonal_mesh_array(elem2idx, idx2vtx, elem2flag);
     (
         numpy::ndarray::Array1::from_vec(felem2jdx).into_pyarray(py),
         numpy::ndarray::Array1::from_vec(jdx2vtx).into_pyarray(py)
