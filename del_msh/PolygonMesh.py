@@ -1,5 +1,5 @@
 """
-Functions for polygon mesh e.g., mixture of triangles, quadrilaterals, pentagons in 2D and 3D
+Functions for polygon mesh (e.g., mixture of triangles, quadrilaterals, pentagons) in 2D and 3D
 """
 
 import numpy

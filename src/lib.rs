@@ -1,3 +1,4 @@
+use del_msh::vtx2elem;
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2,
             PyArray3, PyArray2, PyArray1};
@@ -73,12 +74,12 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     ) -> &'a PyArray1<f32> {
         let tri2area = match vtx2xyz.shape()[1] {
             2 => {
-                del_msh::trimesh2::areas(
+                del_msh::trimesh2::tri2area(
                     tri2vtx.as_slice().unwrap(),
                     vtx2xyz.as_slice().unwrap())
             }
             3 => {
-                del_msh::trimesh3::areas(
+                del_msh::trimesh3::elem2area(
                     tri2vtx.as_slice().unwrap(),
                     vtx2xyz.as_slice().unwrap())
             }
@@ -98,7 +99,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         niter: usize) -> &'a PyArray2<f64> {
         let tri2vtx = tri2vtx.as_slice().unwrap();
         let vtx2xyz = vtx2xyz.as_slice().unwrap();
-        let vtx2nrm = del_msh::trimesh3::normal(tri2vtx, vtx2xyz);
+        let vtx2nrm = del_msh::trimesh3::vtx2normal(tri2vtx, vtx2xyz);
         let num_vtx = vtx2xyz.len() / 3;
         let mut a = vec!(0_f64; num_vtx * 3);
         for i_vtx in 0..num_vtx {
@@ -124,8 +125,8 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         step: f64,
         niter: usize) -> (&'a PyArray2<usize>, &'a PyArray2<f64>) {
         assert_eq!(lpvtx2xyz.shape()[1], 3);
-        let lpvtx2bin = del_msh::polyloop::smooth_frame(lpvtx2xyz.as_slice().unwrap());
-        let (tri2vtx, vtx2xyz) = del_msh::polyloop::tube_mesh_avoid_intersection(
+        let lpvtx2bin = del_msh::polyloop3::smooth_frame(lpvtx2xyz.as_slice().unwrap());
+        let (tri2vtx, vtx2xyz) = del_msh::polyloop3::tube_mesh_avoid_intersection(
             lpvtx2xyz.as_slice().unwrap(), &lpvtx2bin, step, niter);
         let v1 = numpy::ndarray::Array2::from_shape_vec(
             (tri2vtx.len() / 3, 3), tri2vtx).unwrap().into_pyarray(py);
@@ -169,7 +170,55 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         }
     }
 
+    #[pyfn(m)]
+    pub fn build_bvh_topology<'a>(
+        _py: Python<'a>,
+        tri2vtx: PyReadonlyArray2<'a, usize>,
+        vtx2xyz: PyReadonlyArray2<'a, f32>)  -> &'a PyArray2<usize>
+    {
+        let tri2vtx = tri2vtx.as_slice().unwrap();
+        let vtx2xyz = vtx2xyz.as_slice().unwrap();
+        let elem2elem = {
+            let (vtx2idx, idx2elem)
+                = vtx2elem::from_uniform_mesh(tri2vtx, 3, vtx2xyz.len() / 3);
+            let (face2jdx, jdx2node)
+                = del_msh::elem2elem::face2node_of_polygon_element(3);
+            del_msh::elem2elem::from_uniform_mesh_with_vtx2elem(
+                tri2vtx, 3,
+                &vtx2idx, &idx2elem,
+                &face2jdx, &jdx2node)
+        };
+        let elem2center = del_msh::elem2center::from_uniform_mesh(
+            tri2vtx, 3, vtx2xyz, 3);
+        let bvhnodes = del_msh::bvh3::build_topology_for_uniform_mesh_with_elem2elem_elem2center(
+            &elem2elem, 3, &elem2center);
+        let a = PyArray1::<usize>::from_slice(_py, &bvhnodes);
+        let a = a.reshape((bvhnodes.len()/3, 3)).unwrap();
+        a
+    }
 
+    #[pyfn(m)]
+    pub fn build_bvh_geometry_aabb<'a>(
+        _py: Python<'a>,
+        mut aabbs: numpy::PyReadwriteArray2<'a, f32>,
+        bvhnodes: PyReadonlyArray2<'a, usize>,
+        tri2vtx: PyReadonlyArray2<'a, usize>,
+        vtx2xyz: PyReadonlyArray2<'a, f32>)
+    {
+        assert_eq!( bvhnodes.shape()[0], aabbs.shape()[0] );
+        assert_eq!( bvhnodes.shape()[1], 3 );
+        assert_eq!( aabbs.shape()[1], 6 );
+        let num_noel = tri2vtx.shape()[1];
+        let aabbs = aabbs.as_slice_mut().unwrap();
+        let bvhnodes = bvhnodes.as_slice().unwrap();
+        let tri2vtx = tri2vtx.as_slice().unwrap();
+        let vtx2xyz = vtx2xyz.as_slice().unwrap();
+        del_msh::bvh3::build_geometry_aabb_for_uniform_mesh(
+            aabbs,
+            0, bvhnodes,
+            tri2vtx,
+            num_noel, vtx2xyz);
+    }
 
     m.add_class::<MyClass>()?;
 

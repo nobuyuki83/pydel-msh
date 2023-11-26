@@ -28,7 +28,7 @@ fn vtx2vtx_trimesh<'a>(
     tri2vtx: PyReadonlyArray2<'a, usize>,
     num_vtx: usize ) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
     assert_eq!(tri2vtx.shape()[1], 3);
-    let (vtx2idx, idx2vtx) = del_msh::vtx2vtx::from_uniform_mesh2(
+    let (vtx2idx, idx2vtx) = del_msh::vtx2vtx::from_uniform_mesh(
         tri2vtx.as_slice().unwrap(), 3,
         num_vtx);
     (

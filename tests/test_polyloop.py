@@ -14,5 +14,6 @@ def test_01():
     ##
     tri2vtx, vtx2xy = PolyLoop.tesselation2d(vtx2xy_in)
     area0 = PolyLoop.area2(vtx2xy_in)
-    area1 = TriMesh.areas(tri2vtx, vtx2xy).sum()
+    area1 = TriMesh.tri2area(tri2vtx, vtx2xy).sum()
     assert math.fabs(area0 - area1) < 1.0e-5
+    area0 = PolyLoop.area2(vtx2xy_in.astype(numpy.float64))

@@ -16,12 +16,12 @@ def vtx2vtx(tri2vtx, num_vtx: int) -> [numpy.ndarray, numpy.ndarray]:
     return vtx2vtx_trimesh(tri2vtx, num_vtx)
 
 
-def triangle_adjacency(tri2vtx, num_vtx: int) -> numpy.ndarray:
+def tri2tri(tri2vtx, num_vtx: int) -> numpy.ndarray:
     from .del_msh import elem2elem_uniform_mesh_polygon_indexing
     return elem2elem_uniform_mesh_polygon_indexing(tri2vtx, num_vtx)
 
 
-def topological_distance_of_tris(idx_tri: int, tri2tri: numpy.ndarray) -> numpy.ndarray:
+def tri2distance(idx_tri: int, tri2tri: numpy.ndarray) -> numpy.ndarray:
     from .del_msh import topological_distance_on_uniform_mesh
     return topological_distance_on_uniform_mesh(idx_tri, tri2tri)
 
@@ -70,7 +70,7 @@ def unindexing(tri2vtx, vtx2xyz) -> numpy.ndarray:
     return unidex_vertex_attribute_for_triangle_mesh(tri2vtx, vtx2xyz)
 
 
-def areas(tri2vtx, vtx2xyz) -> numpy.ndarray:
+def tri2area(tri2vtx, vtx2xyz) -> numpy.ndarray:
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
 
@@ -112,8 +112,8 @@ def sample(cumsum_area: numpy.ndarray, r0: float, r1: float):
 
 def sample_many(tri2vtx, vtx2xy, num_sample: int) -> numpy.ndarray:
     import random
-    tri2area = areas(tri2vtx, vtx2xy)
-    cumsum_area = numpy.cumsum(numpy.append(0., tri2area)).astype(numpy.float32)
+    tri2area_ = tri2area(tri2vtx, vtx2xy)
+    cumsum_area = numpy.cumsum(numpy.append(numpy.zeros(1, dtype=numpy.float32), tri2area_))
     num_dim = vtx2xy.shape[1]
     xys = numpy.zeros([num_sample, num_dim], numpy.float32)
     for i in range(num_sample):
@@ -134,3 +134,16 @@ def merge_hessian_mesh_laplacian(
         tri2vtx, vtx2xyz,
         row2idx, idx2col,
         row2val, idx2val)
+
+
+# ------------------------------------
+
+def bvh_aabb(
+        tri2vtx: numpy.ndarray,
+        vtx2xyz: numpy.ndarray):
+    from .del_msh import build_bvh_topology
+    bvhnodes = build_bvh_topology(tri2vtx, vtx2xyz)
+    aabbs = numpy.zeros((bvhnodes.shape[0], 6), dtype=numpy.float32)
+    from .del_msh import build_bvh_geometry_aabb
+    build_bvh_geometry_aabb(aabbs, bvhnodes, tri2vtx, vtx2xyz)
+    return bvhnodes, aabbs
