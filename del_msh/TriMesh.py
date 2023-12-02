@@ -52,6 +52,13 @@ def sphere(radius=1., ndiv_latitude=32, ndiv_longtitude=32):
     return sphere_meshtri3(radius, ndiv_latitude, ndiv_longtitude)
 
 
+def hemisphere(radius=1., ndiv_longtitude=32, ndiv_latitude=32):
+    assert ndiv_longtitude > 0
+    assert ndiv_latitude > 2
+    from .del_msh import trimesh3_hemisphere_zup
+    return trimesh3_hemisphere_zup(radius, ndiv_longtitude, ndiv_latitude)
+
+
 def load_wavefront_obj(
         path_file: str,
         is_centerize=False,

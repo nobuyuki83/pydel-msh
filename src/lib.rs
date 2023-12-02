@@ -1,7 +1,6 @@
-use del_msh::vtx2elem;
 use numpy::{IntoPyArray,
             PyReadonlyArray1, PyReadonlyArray2,
-            PyArray3, PyArray2, PyArray1};
+            PyArray2, PyArray1};
 use pyo3::{types::PyModule, PyResult, Python};
 
 mod topology;
@@ -17,10 +16,12 @@ mod edge2vtx;
 mod elem2elem;
 mod dtri;
 mod polyloop;
+mod bvh;
+mod kdtree;
 
 /// A Python module implemented in Rust.
 
-
+/*
 #[pyo3::pyclass]
 struct MyClass {
     tree: del_msh::kdtree2::KdTree2<f32>,
@@ -45,6 +46,8 @@ impl MyClass {
             (e.len() / 4, 2, 2), e).unwrap().into_pyarray(py)
     }
 }
+ */
+
 
 /* ------------------------ */
 
@@ -52,19 +55,21 @@ impl MyClass {
 #[pyo3::pymodule]
 #[pyo3(name = "del_msh")]
 fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
-    let _ = topology::add_functions(_py, m);
-    let _ = edge2vtx::add_functions(_py, m);
-    let _ = elem2elem::add_functions(_py, m);
-    let _ = unify_index::add_functions(_py, m);
-    let _ = unindex::add_functions(_py, m);
-    let _ = dijkstra::add_functions(_py, m);
-    let _ = primitive::add_functions(_py, m);
-    let _ = io_obj::add_functions(_py, m);
-    let _ = sampling::add_functions(_py, m);
-    let _ = extract::add_functions(_py, m);
-    let _ = trimesh3_search::add_functions(_py, m);
-    let _ = dtri::add_functions(_py, m);
-    let _ = polyloop::add_functions(_py, m);
+    topology::add_functions(_py, m)?;
+    edge2vtx::add_functions(_py, m)?;
+    elem2elem::add_functions(_py, m)?;
+    unify_index::add_functions(_py, m)?;
+    unindex::add_functions(_py, m)?;
+    dijkstra::add_functions(_py, m)?;
+    primitive::add_functions(_py, m)?;
+    io_obj::add_functions(_py, m)?;
+    sampling::add_functions(_py, m)?;
+    extract::add_functions(_py, m)?;
+    trimesh3_search::add_functions(_py, m)?;
+    dtri::add_functions(_py, m)?;
+    polyloop::add_functions(_py, m)?;
+    bvh::add_functions(_py, m)?;
+    kdtree::add_functions(_py, m)?;
 
     #[pyfn(m)]
     pub fn areas_of_triangles_of_mesh<'a>(
@@ -91,6 +96,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
 
 
     #[pyfn(m)]
+    #[allow(clippy::identity_op)]
     pub fn extend_trimesh<'a>(
         py: Python<'a>,
         tri2vtx: PyReadonlyArray2<'a, usize>,
@@ -169,58 +175,6 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
                 &mut merge_buffer);
         }
     }
-
-    #[pyfn(m)]
-    pub fn build_bvh_topology<'a>(
-        _py: Python<'a>,
-        tri2vtx: PyReadonlyArray2<'a, usize>,
-        vtx2xyz: PyReadonlyArray2<'a, f32>)  -> &'a PyArray2<usize>
-    {
-        let tri2vtx = tri2vtx.as_slice().unwrap();
-        let vtx2xyz = vtx2xyz.as_slice().unwrap();
-        let elem2elem = {
-            let (vtx2idx, idx2elem)
-                = vtx2elem::from_uniform_mesh(tri2vtx, 3, vtx2xyz.len() / 3);
-            let (face2jdx, jdx2node)
-                = del_msh::elem2elem::face2node_of_polygon_element(3);
-            del_msh::elem2elem::from_uniform_mesh_with_vtx2elem(
-                tri2vtx, 3,
-                &vtx2idx, &idx2elem,
-                &face2jdx, &jdx2node)
-        };
-        let elem2center = del_msh::elem2center::from_uniform_mesh(
-            tri2vtx, 3, vtx2xyz, 3);
-        let bvhnodes = del_msh::bvh3::build_topology_for_uniform_mesh_with_elem2elem_elem2center(
-            &elem2elem, 3, &elem2center);
-        let a = PyArray1::<usize>::from_slice(_py, &bvhnodes);
-        let a = a.reshape((bvhnodes.len()/3, 3)).unwrap();
-        a
-    }
-
-    #[pyfn(m)]
-    pub fn build_bvh_geometry_aabb<'a>(
-        _py: Python<'a>,
-        mut aabbs: numpy::PyReadwriteArray2<'a, f32>,
-        bvhnodes: PyReadonlyArray2<'a, usize>,
-        tri2vtx: PyReadonlyArray2<'a, usize>,
-        vtx2xyz: PyReadonlyArray2<'a, f32>)
-    {
-        assert_eq!( bvhnodes.shape()[0], aabbs.shape()[0] );
-        assert_eq!( bvhnodes.shape()[1], 3 );
-        assert_eq!( aabbs.shape()[1], 6 );
-        let num_noel = tri2vtx.shape()[1];
-        let aabbs = aabbs.as_slice_mut().unwrap();
-        let bvhnodes = bvhnodes.as_slice().unwrap();
-        let tri2vtx = tri2vtx.as_slice().unwrap();
-        let vtx2xyz = vtx2xyz.as_slice().unwrap();
-        del_msh::bvh3::build_geometry_aabb_for_uniform_mesh(
-            aabbs,
-            0, bvhnodes,
-            tri2vtx,
-            num_noel, vtx2xyz);
-    }
-
-    m.add_class::<MyClass>()?;
 
     Ok(())
 }

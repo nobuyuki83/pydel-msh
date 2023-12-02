@@ -8,6 +8,7 @@ pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(capsule_meshtri3, m)?)?;
     m.add_function( wrap_pyfunction!(cylinder_closed_end_meshtri3, m)?)?;
     m.add_function( wrap_pyfunction!(sphere_meshtri3, m)?)?;
+    m.add_function( wrap_pyfunction!(trimesh3_hemisphere_zup, m)?)?;
     Ok(())
 }
 
@@ -67,3 +68,17 @@ fn sphere_meshtri3(
     (f.into_pyarray(py), v.into_pyarray(py))
 }
 
+#[pyfunction]
+fn trimesh3_hemisphere_zup(
+    py: Python,
+    r: f32,
+    nr: usize, nl: usize) -> (&PyArray2<usize>, &PyArray2<f32>) {
+    let ( tri2vtx, vtx2xyz) = del_msh::trimesh3_primitive::from_hemisphere_zup(
+        r, nr, nl);
+    (
+        numpy::ndarray::Array2::from_shape_vec(
+            (tri2vtx.len()/3, 3), tri2vtx).unwrap().into_pyarray(py),
+        numpy::ndarray::Array2::from_shape_vec(
+        (vtx2xyz.len()/3, 3), vtx2xyz).unwrap().into_pyarray(py)
+    )
+}
