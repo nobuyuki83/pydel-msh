@@ -15,9 +15,9 @@ numpy = "0.20.0"
 num-traits = "0.2.17"
 
 
-# del-msh = {path="../del-msh"}
-# del-geo = {path="../del-geo"}
-# del-dtri = {path="../del-dtri"}
-del-msh = "0.1.19"
-del-geo = "0.1.11"
-del-dtri = "0.1.3"
+del-msh = {path="../del-msh"}
+del-geo = {path="../del-geo"}
+del-dtri = {path="../del-dtri"}
+# del-msh = "0.1.19"
+# del-geo = "0.1.11"
+# del-dtri = "0.1.3"

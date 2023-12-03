@@ -46,7 +46,7 @@ fn kdtree_edge_2d<'a>(
     del_msh::kdtree2::find_edges(
         &mut edge2xy,
         vtx2xy,
-        &tree,
+        tree,
         0,
         min, max,
         0);
