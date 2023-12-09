@@ -1,6 +1,7 @@
 import typing
-from nptyping import Shape, NDArray, UInt, Float
+
 import numpy
+from nptyping import Shape, NDArray, UInt, Float
 
 
 def edge2vtx(
@@ -43,20 +44,31 @@ def tri2distance(
 # below: primitive
 
 def torus(
-        major_radius=1.0, minor_radius=0.4,
-        ndiv_major_radius=32, ndiv_minor_radius=32) \
+        major_radius=1.0,
+        minor_radius=0.4,
+        ndiv_major_radius=32,
+        ndiv_minor_radius=32) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     from .del_msh import torus_meshtri3
     return torus_meshtri3(major_radius, minor_radius, ndiv_major_radius, ndiv_minor_radius)
 
 
-def capsule(radius=1.0, height=1., ndiv_theta=32, ndiv_height=32, ndiv_longtitude=32) \
+def capsule(
+        radius: float = 1.0,
+        height: float = 1.,
+        ndiv_theta: int = 32,
+        ndiv_height: int = 32,
+        ndiv_longtitude: int = 32) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     from .del_msh import capsule_meshtri3
     return capsule_meshtri3(radius, height, ndiv_theta, ndiv_longtitude, ndiv_height)
 
 
-def cylinder(radius=1., height=1., ndiv_theta=32, ndiv_height=8) \
+def cylinder(
+        radius: float = 1.,
+        height: float = 1.,
+        ndiv_theta: int = 32,
+        ndiv_height: int = 8) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     from .del_msh import cylinder_closed_end_meshtri3
     return cylinder_closed_end_meshtri3(radius, height, ndiv_theta, ndiv_height)
@@ -64,20 +76,27 @@ def cylinder(radius=1., height=1., ndiv_theta=32, ndiv_height=8) \
 
 def sphere(
         radius: float = 1.,
-        ndiv_latitude: UInt = 32,
-        ndiv_longtitude: UInt = 32) \
+        ndiv_latitude: int = 32,
+        ndiv_longtitude: int = 32) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     from .del_msh import sphere_meshtri3
     return sphere_meshtri3(radius, ndiv_latitude, ndiv_longtitude)
 
 
-def hemisphere(radius=1., ndiv_longtitude=32, ndiv_latitude=32) \
+def hemisphere(
+        radius: float = 1.,
+        ndiv_longtitude: int = 32,
+        ndiv_latitude: int = 32) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     assert ndiv_longtitude > 0
     assert ndiv_latitude > 2
     from .del_msh import trimesh3_hemisphere_zup
     return trimesh3_hemisphere_zup(radius, ndiv_longtitude, ndiv_latitude)
 
+
+# above: primitive
+# ------------------------------
+# below: misc
 
 def load_wavefront_obj(
         path_file: str,
@@ -105,6 +124,17 @@ def tri2area(
         vtx2xyz: NDArray[Shape["*, 3"], Float]) -> NDArray[Shape["*"], Float]:
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
+
+
+def merge(
+        tri2vtx0: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz0: NDArray[Shape["*, 3"], Float],
+        tri2vtx1: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz1: NDArray[Shape["*, 3"], Float]):
+    num_vtx0 = vtx2xyz0.shape[0]
+    tri2vtx = numpy.vstack([tri2vtx0, tri2vtx1 + num_vtx0])
+    vtx2xyz = numpy.vstack([vtx2xyz0, vtx2xyz1])
+    return tri2vtx, vtx2xyz
 
 
 # above: property
@@ -176,7 +206,8 @@ def merge_hessian_mesh_laplacian(
 
 def bvh_aabb(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: numpy.ndarray):
+        vtx2xyz: NDArray[Shape["*, 3"], Float]) \
+        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
     from .del_msh import build_bvh_topology
     bvhnodes = build_bvh_topology(tri2vtx, vtx2xyz)
     aabbs = numpy.zeros((bvhnodes.shape[0], 6), dtype=numpy.float32)

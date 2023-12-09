@@ -1,6 +1,4 @@
-use numpy::{IntoPyArray,
-            PyReadonlyArray1, PyReadonlyArray2,
-            PyArray2, PyArray1};
+use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2, PyArray2, PyArray1, PyReadwriteArray1};
 use pyo3::{types::PyModule, PyResult, Python};
 
 mod topology;
@@ -19,38 +17,7 @@ mod polyloop;
 mod bvh;
 mod kdtree;
 
-/// A Python module implemented in Rust.
-
-/*
-#[pyo3::pyclass]
-struct MyClass {
-    tree: del_msh::kdtree2::KdTree2<f32>,
-}
-
-#[pyo3::pymethods]
-impl MyClass {
-    #[new]
-    fn new(vtx2xy: PyReadonlyArray2<f32>) -> Self {
-        let slice = vtx2xy.as_slice().unwrap();
-        let points_ = nalgebra::Matrix2xX::<f32>::from_column_slice(slice);
-        let tree = del_msh::kdtree2::KdTree2::from_matrix(&points_);
-        vtx2xy.as_slice().unwrap();
-        MyClass {
-            tree
-        }
-    }
-
-    fn edges<'a>(&self, py: Python<'a>) -> &'a PyArray3<f32> {
-        let e = self.tree.edges();
-        numpy::ndarray::Array3::<f32>::from_shape_vec(
-            (e.len() / 4, 2, 2), e).unwrap().into_pyarray(py)
-    }
-}
- */
-
-
 /* ------------------------ */
-
 
 #[pyo3::pymodule]
 #[pyo3(name = "del_msh")]

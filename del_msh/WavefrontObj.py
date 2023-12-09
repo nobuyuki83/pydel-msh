@@ -24,11 +24,11 @@ class WavefrontObj:
     def normalize_size(self, scale=1.0):
         self.vtxxyz2xyz *= scale / (self.vtxxyz2xyz.max(axis=0) - self.vtxxyz2xyz.min(axis=0)).max()
 
-    def edges(self):
+    def edge2vtxxyz(self):
         from .del_msh import edge2vtx_polygon_mesh
         return edge2vtx_polygon_mesh(self.elem2idx, self.idx2vtxxyz, self.vtxxyz2xyz.shape[0])
 
-    def tris(self):
+    def tri2vtxxyz(self):
         from .del_msh import triangles_from_polygon_mesh
         return triangles_from_polygon_mesh(self.elem2idx, self.idx2vtxxyz)
 

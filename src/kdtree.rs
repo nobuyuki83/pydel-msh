@@ -20,7 +20,6 @@ pub fn kdtree_build_2d<'a>(
         pairs_xy_idx.push( (Vector::new(xy[0], xy[1]), i_vtx) );
     }
     let mut tree = Vec::<usize>::new();
-    tree.resize(3, usize::MAX);
     del_msh::kdtree2::construct_kdtree(
         &mut tree, 0,
         &mut pairs_xy_idx, 0, num_vtx,
