@@ -1,4 +1,5 @@
 import numpy
+import nptyping
 
 
 ''' 
@@ -19,10 +20,18 @@ for i_vtx in range(self.vtx2xyz.shape[0]):
 '''
 
 def kernel(
-        samples: numpy.ndarray,
-        vtx2xyz: numpy.ndarray,
+        samples: nptyping.NDArray[nptyping.Shape["*, 3"],nptyping.Float],
+        vtx2xyz: nptyping.NDArray[nptyping.Shape["*, 3"],nptyping.Float],
         p: int=2,
         eps: float=1.0e-3) -> numpy.ndarray:
+    """
+    compute the kernel value for each vertex against each sample point
+    :param samples:
+    :param vtx2xyz:
+    :param p: the degree of the polynominal
+    :param eps: epsilon value to avoid zero-division
+    :return:
+    """
     ws = numpy.ndarray((vtx2xyz.shape[0], samples.shape[0]))
     for i_vtx in range(vtx2xyz.shape[0]):
         p0 = vtx2xyz[i_vtx].copy()
@@ -37,6 +46,8 @@ def precomp(
         vtx2xyz: numpy.ndarray,
         weights: numpy.ndarray):
     precomp = numpy.ndarray((vtx2xyz.shape[0], samples.shape[0]))
+    if samples.shape[0] < 4:
+        return
     for i_vtx in range(vtx2xyz.shape[0]):
         p0 = vtx2xyz[i_vtx].copy()
         w = weights[i_vtx]

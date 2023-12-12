@@ -1,5 +1,5 @@
 import typing
-
+#
 import numpy
 from nptyping import Shape, NDArray, UInt, Float
 
@@ -8,6 +8,12 @@ def edge2vtx(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         num_vtx: int) \
         -> NDArray[Shape["*, 2"], UInt]:
+    """
+    compute line mesh connectivity from a triangle connectivity
+    :param tri2vtx: triangle mesh connectivity
+    :param num_vtx: number of vertex
+    :return: 2D numpy.ndarray showing the vertex index for each edge
+    """
     assert len(tri2vtx.shape) == 2
     assert tri2vtx.shape[1] == 3
     from .del_msh import edge2vtx_uniform_mesh
@@ -121,7 +127,15 @@ def unindexing(
 
 def tri2area(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float]) -> NDArray[Shape["*"], Float]:
+        vtx2xyz: NDArray[Shape["*, *"], Float]) \
+        -> NDArray[Shape["*"], Float]:
+    """
+    Areas of the triangles in a 2D/3D mesh.
+    :param tri2vtx:
+    :param vtx2xyz:
+    :return:
+    """
+    assert vtx2xyz.shape[1] == 2 or vtx2xyz.shape[2] == 3, "the dimension should be 2 or 3"
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
 
@@ -141,12 +155,28 @@ def merge(
 # ---------------------
 # below: search
 
-def first_intersection_ray(src, dir, tri2vtx, vtx2xyz) -> [numpy.ndarray, int]:
+def first_intersection_ray(
+        src,
+        dir,
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz: NDArray[Shape["*, 3"], Float]) -> [NDArray[Shape["3"], Float], int]:
+    """
+    compute first intersection of a ray against a triangle mesh
+    :param src: source of ray
+    :param dir: direction of ray (can be un-normalized vector)
+    :param tri2vtx: triangle index
+    :param vtx2xyz: vertex positions
+    :return: position and triangle index
+    """
     from .del_msh import first_intersection_ray_meshtri3
     return first_intersection_ray_meshtri3(src, dir, tri2vtx, vtx2xyz)
 
 
-def pick_vertex(src, dir, tri2vtx, vtx2xyz):
+def pick_vertex(
+        src,
+        dir,
+        tri2vtx,
+        vtx2xyz):
     from .del_msh import pick_vertex_meshtri3
     return pick_vertex_meshtri3(src, dir, tri2vtx, vtx2xyz)
 

@@ -1,7 +1,9 @@
 import numpy
+import nptyping
 
 
-def build_topology(vtx2xy: numpy.ndarray):
+def build_topology(
+        vtx2xy: nptyping.NDArray[nptyping.Shape["*, *"], nptyping.Float]):
     if vtx2xy.shape[1] == 2:
         from del_msh.del_msh import kdtree_build_2d
         return kdtree_build_2d(vtx2xy)
