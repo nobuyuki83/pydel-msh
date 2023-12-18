@@ -5,6 +5,7 @@ use pyo3::{pyfunction, types::PyModule, PyResult, Python, PyObject, ToPyObject, 
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(load_wavefront_obj, m)?)?;
     m.add_function(wrap_pyfunction!(load_wavefront_obj_as_triangle_mesh, m)?)?;
+    m.add_function( wrap_pyfunction!(load_nastran_as_triangle_mesh, m)?)?;
     Ok(())
 }
 
@@ -41,7 +42,8 @@ pub fn load_wavefront_obj(
 pub fn load_wavefront_obj_as_triangle_mesh(
     py: Python,
     path_file: String) -> (&PyArray2<usize>,
-                           &PyArray2<f32>) {
+                           &PyArray2<f32>)
+{
     let (tri2vtx, vtx2xyz)
         = del_msh::io_obj::load_tri_mesh(path_file, Option::None);
     (
@@ -51,3 +53,20 @@ pub fn load_wavefront_obj_as_triangle_mesh(
             (vtx2xyz.len()/3,3), vtx2xyz).unwrap().into_pyarray(py)
     )
 }
+
+#[pyfunction]
+pub fn load_nastran_as_triangle_mesh(
+    py: Python,
+    path_file: String)  -> (&PyArray2<usize>,
+                            &PyArray2<f32>)
+{
+    let (tri2vtx, vtx2xyz) = del_msh::io_nas::load_tri_mesh(path_file);
+    (
+        numpy::ndarray::Array2::from_shape_vec(
+            (tri2vtx.len()/3,3), tri2vtx).unwrap().into_pyarray(py),
+        numpy::ndarray::Array2::from_shape_vec(
+            (vtx2xyz.len()/3,3), vtx2xyz).unwrap().into_pyarray(py)
+    )
+}
+
+

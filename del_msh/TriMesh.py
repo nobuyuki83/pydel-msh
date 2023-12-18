@@ -4,6 +4,9 @@ import numpy
 from nptyping import Shape, NDArray, UInt, Float
 
 
+# ------------------------------
+# below: topology
+
 def edge2vtx(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         num_vtx: int) \
@@ -117,6 +120,12 @@ def load_wavefront_obj(
     return tri2vtx, vtx2xyz
 
 
+def load_nastran(
+        path_file: str):
+    from .del_msh import load_nastran_as_triangle_mesh
+    return load_nastran_as_triangle_mesh(path_file)
+
+
 def unindexing(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         vtx2xyz: NDArray[Shape["*, 3"], Float]) \
@@ -198,7 +207,10 @@ def position(
     return r0 * p0 + r1 * p1 + (1. - r0 - r1) * p2
 
 
-def sample(cumsum_area: numpy.ndarray, r0: float, r1: float):
+def sample(
+        cumsum_area: numpy.ndarray,
+        r0: float,
+        r1: float):
     from .del_msh import sample_uniformly_trimesh
     return sample_uniformly_trimesh(cumsum_area, r0, r1)
 
