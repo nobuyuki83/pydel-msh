@@ -1,9 +1,9 @@
-use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2, PyArray2, PyArray1, PyReadwriteArray1};
+use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2, PyArray2, PyArray1};
 use pyo3::{types::PyModule, PyResult, Python};
 
 mod topology;
 mod primitive;
-mod io_obj;
+mod io;
 mod unify_index;
 mod unindex;
 mod dijkstra;
@@ -29,7 +29,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     unindex::add_functions(_py, m)?;
     dijkstra::add_functions(_py, m)?;
     primitive::add_functions(_py, m)?;
-    io_obj::add_functions(_py, m)?;
+    io::add_functions(_py, m)?;
     sampling::add_functions(_py, m)?;
     extract::add_functions(_py, m)?;
     trimesh3_search::add_functions(_py, m)?;

@@ -3,6 +3,8 @@ import typing
 import numpy
 from nptyping import Shape, NDArray, UInt, Float
 
+import del_msh
+
 
 # ------------------------------
 # below: topology
@@ -144,7 +146,7 @@ def tri2area(
     :param vtx2xyz:
     :return:
     """
-    assert vtx2xyz.shape[1] == 2 or vtx2xyz.shape[2] == 3, "the dimension should be 2 or 3"
+    assert vtx2xyz.shape[1] == 2 or vtx2xyz.shape[1] == 3, "the dimension should be 2 or 3"
     from .del_msh import areas_of_triangles_of_mesh
     return areas_of_triangles_of_mesh(tri2vtx, vtx2xyz)
 
@@ -245,14 +247,104 @@ def merge_hessian_mesh_laplacian(
 
 
 # ------------------------------------
+# below: BVH related functions
 
-def bvh_aabb(
+def bvhnodes_tri(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float]) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
-    from .del_msh import build_bvh_topology
-    bvhnodes = build_bvh_topology(tri2vtx, vtx2xyz)
-    aabbs = numpy.zeros((bvhnodes.shape[0], 6), dtype=numpy.float32)
-    from .del_msh import build_bvh_geometry_aabb
-    build_bvh_geometry_aabb(aabbs, bvhnodes, tri2vtx, vtx2xyz)
-    return bvhnodes, aabbs
+        vtx2xyz: NDArray[Shape["*, *"], Float],
+        is_morton = True) \
+        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, *"], Float]):
+    """
+    2D and 3D bvh tree topoloty geneartion
+    :param tri2vtx:
+    :param vtx2xyz:
+    :return: array of bvh nodes (X-by-3 matrix)
+    """
+    if is_morton:
+        tri2center = (vtx2xyz[tri2vtx[:,0],:]+vtx2xyz[tri2vtx[:,1],:]+vtx2xyz[tri2vtx[:,2],:]) / 3
+        del_msh.fit_into_unit_cube(tri2center) # fit the points inside unit cube [0,1]^3
+        from .del_msh import build_bvh_topology_morton
+        return build_bvh_topology_morton(tri2center)
+    else:
+        from .del_msh import build_bvh_topology_topdown
+        return build_bvh_topology_topdown(tri2vtx, vtx2xyz)
+
+def aabbs_tri(
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz0: NDArray[Shape["*, *"], Float],
+        bvhnodes: NDArray[Shape["*, 3"], UInt],
+        aabbs = None,
+        i_bvhnode_root = 0):
+    from del_msh.BVH import aabb_uniform_mesh
+    return aabb_uniform_mesh(tri2vtx, vtx2xyz0, bvhnodes, aabbs, i_bvhnode_root)
+
+def bvhnodes_vtxedgetri(
+        edge2vtx: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz: NDArray[Shape["*, *"], Float]) \
+        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, *"], Float]):
+    vtx2center = vtx2xyz.copy()
+    edge2center = (vtx2xyz[edge2vtx[:, 0], :] + vtx2xyz[edge2vtx[:, 1], :]) / 2
+    tri2center = (vtx2xyz[tri2vtx[:, 0], :] + vtx2xyz[tri2vtx[:, 1], :] + vtx2xyz[tri2vtx[:, 2], :]) / 3
+    del_msh.fit_into_unit_cube(vtx2center)
+    del_msh.fit_into_unit_cube(edge2center)
+    del_msh.fit_into_unit_cube(tri2center)
+    from .del_msh import build_bvh_topology_morton
+    bvhnodes_vtx = build_bvh_topology_morton(vtx2center)
+    bvhnodes_edge = build_bvh_topology_morton(edge2center)
+    bvhnodes_tri = build_bvh_topology_morton(tri2center)
+    # print(vtx2xyz.shape, edge2vtx.shape, tri2vtx.shape)
+    #print(bvhnodes_vtx.shape, bvhnodes_edge.shape, bvhnodes_tri.shape)
+    from .del_msh import shift_bvhnodes
+    shift_bvhnodes(bvhnodes_edge, bvhnodes_vtx.shape[0], 0)
+    shift_bvhnodes(bvhnodes_tri, bvhnodes_vtx.shape[0]+bvhnodes_edge.shape[0], 0)
+    bvhnodes = numpy.vstack([bvhnodes_vtx, bvhnodes_edge, bvhnodes_tri])
+    return bvhnodes, [0,bvhnodes_vtx.shape[0],bvhnodes_vtx.shape[0]+bvhnodes_edge.shape[0]]
+
+def aabb_vtxedgetri(
+        edge2vtx,
+        tri2vtx,
+        vtx2xyz0,
+        bvhnodes,
+        roots : typing.List[int],
+        aabbs=None,
+        vtx2xyz1 = None):
+    """
+    :param edge2vtx:
+    :param tri2vtx:
+    :param vtx2xyz0:
+    :param bvhnodes:
+    :param roots: list of root bvhnode indices (vertex, edge, tri)
+    :param aabbs: (optional) provide numpy array if you want to update
+    :param vtx2xyz1: (optinoal) for Continuous Collision Detection (CCD)
+    :return:
+    """
+    assert len(roots) == 3
+    from del_msh.BVH import aabb_uniform_mesh
+    # vertex
+    aabbs = aabb_uniform_mesh(
+        numpy.zeros((0,0), dtype=numpy.uint64), vtx2xyz0, bvhnodes,
+        aabbs=aabbs, root=roots[0], vtx2xyz1=vtx2xyz1)
+    # edge
+    aabbs = aabb_uniform_mesh(
+        edge2vtx, vtx2xyz0, bvhnodes,
+        aabbs=aabbs, root=roots[0], vtx2xyz1=vtx2xyz1)
+    # triangle
+    aabbs = aabb_uniform_mesh(
+        tri2vtx, vtx2xyz0, bvhnodes,
+        aabbs=aabbs, root=roots[0], vtx2xyz1=vtx2xyz1)
+    return aabbs
+
+def ccd_intersection_time(
+        edge2vtx,
+        tri2vtx,
+        vtx2xyz0,
+        vtx2xyz1,
+        bvhnodes,
+        aabbs,
+        roots: typing.List[int]):
+    assert bvhnodes.shape[0] == aabbs.shape[0]
+    assert vtx2xyz0.shape == vtx2xyz1.shape
+    assert bvhnodes.shape[0] == vtx2xyz0.shape[0]*2-1 + edge2vtx.shape[0]*2-1 + tri2vtx.shape[0]*2-1
+    from .del_msh import ccd_intersection_time
+    return ccd_intersection_time(edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1, bvhnodes, aabbs, roots)

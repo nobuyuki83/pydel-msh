@@ -10,6 +10,7 @@ pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 #[pyfunction]
+#[allow(clippy::type_complexity)]
 pub fn load_wavefront_obj(
     py: Python,
     path_file: String) -> (&PyArray2<f32>, &PyArray2<f32>, &PyArray2<f32>,

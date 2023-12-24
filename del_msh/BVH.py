@@ -1,7 +1,8 @@
 import numpy
 from nptyping import NDArray, Shape, Float, UInt
 
-def edges_of_aabb(aabb: NDArray[Shape["*, *"], Float])\
+
+def edges_of_aabb(aabb: NDArray[Shape["*, *"], Float]) \
         -> NDArray[Shape["*, *, *"], Float]:
     num_dim = aabb.shape[1] // 2
     assert aabb.shape[1] == num_dim * 2
@@ -24,6 +25,44 @@ def self_intersection_trimesh3(
         tri2vtx: NDArray[Shape["*, *"], UInt],
         vtx2xyz: NDArray[Shape["*, *"], Float],
         bvhnodes: NDArray[Shape["*, *"], UInt],
-        aabbs: NDArray[Shape["*, *"], Float]):
-    from .del_msh import bvh3_self_intersection_trimesh3
-    return bvh3_self_intersection_trimesh3(tri2vtx, vtx2xyz, bvhnodes, aabbs)
+        aabbs: NDArray[Shape["*, *"], Float],
+        i_bvhnode_root=0):
+    if vtx2xyz.shape[1] == 3:
+        assert bvhnodes.shape[1] == 3
+        assert aabbs.shape[1] == 6
+        from .del_msh import bvh3_self_intersection_trimesh3
+        return bvh3_self_intersection_trimesh3(tri2vtx, vtx2xyz, bvhnodes, aabbs, i_bvhnode_root)
+
+
+def aabb_uniform_mesh(
+        elem2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz0: NDArray[Shape["*, *"], Float],
+        bvhnodes: NDArray[Shape["*, 3"], UInt],
+        aabbs=None,
+        root=0,
+        vtx2xyz1=None):
+    """ compute Axis-Aligned Bounding Box (AABB) for elements of an uniform mesh
+    :param elem2vtx: if `None` is provided, build aabb for vertices
+    :param vtx2xyz0: list of vertex coordinate
+    :param bvhnodes: BVH tree structure
+    :param aabbs: (optional) provide numpy array if you want to update values
+    :param root: (optional) default is zero
+    :param vtx2xyz1: (optional) for Continuous Collision Detection (CCD)
+    :return:
+    """
+    if aabbs is None:
+        if vtx2xyz0.shape[1] == 3:
+            aabbs = numpy.zeros((bvhnodes.shape[0], 6), dtype=vtx2xyz0.dtype)
+        else:
+            print("TODO", vtx2xyz0.shape)
+    if vtx2xyz1 is None:
+        vtx2xyz1 = numpy.zeros((0, 0), dtype=vtx2xyz0.dtype)
+    if vtx2xyz0.dtype == numpy.float32:
+        from .del_msh import build_bvh_geometry_aabb_uniformmesh_f32
+        build_bvh_geometry_aabb_uniformmesh_f32(aabbs, bvhnodes, elem2vtx, vtx2xyz0, root, vtx2xyz1)
+    elif vtx2xyz0.dtype == numpy.float64:
+        from .del_msh import build_bvh_geometry_aabb_uniformmesh_f64
+        build_bvh_geometry_aabb_uniformmesh_f64(aabbs, bvhnodes, elem2vtx, vtx2xyz0, root, vtx2xyz1)
+    else:
+        pass
+    return aabbs

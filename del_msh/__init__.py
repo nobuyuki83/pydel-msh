@@ -5,6 +5,17 @@ def centerize_scale_points(vtxxyz2xyz, scale = 1.0):
     vtxxyz2xyz *= scale/(vtxxyz2xyz.max(axis=0) - vtxxyz2xyz.min(axis=0)).max()
     return vtxxyz2xyz
 
+def fit_into_unit_cube(tri2center):
+    """
+    fit the points inside unit cube [0,1]^3
+    :param tri2center:
+    :return:
+    """
+    vmin = numpy.min(tri2center, axis=0)
+    vmax = numpy.max(tri2center, axis=0)
+    tri2center -= (vmin+vmax)*0.5
+    tri2center *= 0.99/(vmax - vmin).max()
+    tri2center += numpy.array([0.5, 0.5, 0.5])
 
 def extract_submesh(tri2vtx, tri2bool, vtx2xyz):
     assert tri2vtx.shape[0] == tri2bool.shape[0]
