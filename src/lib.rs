@@ -16,6 +16,7 @@ mod dtri;
 mod polyloop;
 mod bvh;
 mod kdtree;
+mod mesh_intersection;
 
 /* ------------------------ */
 
@@ -37,6 +38,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     polyloop::add_functions(_py, m)?;
     bvh::add_functions(_py, m)?;
     kdtree::add_functions(_py, m)?;
+    mesh_intersection::add_functions(_py, m)?;
 
     #[pyfn(m)]
     pub fn areas_of_triangles_of_mesh<'a>(

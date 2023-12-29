@@ -12,7 +12,8 @@ fn edge2vtx_uniform_mesh<'a>(
     py: pyo3::Python<'a>,
     elem2vtx: numpy::PyReadonlyArray2<'a, usize>,
     num_vtx: usize) -> &'a numpy::PyArray2<usize> {
-    let mshline = del_msh::edge2vtx::from_specific_edges_of_uniform_mesh(
+    // TODO: make this function general to uniform mesh (currently only triangle mesh)
+    let mshline = del_msh::edge2vtx::from_uniform_mesh_with_specific_edges(
         elem2vtx.as_slice().unwrap(), 3,
         &[0, 1, 1, 2, 2, 0], num_vtx);
     numpy::ndarray::Array2::from_shape_vec(
@@ -25,7 +26,7 @@ fn edge2vtx_polygon_mesh<'a>(
     elem2idx: numpy::PyReadonlyArray1<'a, usize>,
     idx2vtx: numpy::PyReadonlyArray1<'a, usize>,
     num_vtx: usize) -> &'a numpy::PyArray2<usize> {
-    let mshline = del_msh::edge2vtx::edge_of_polygon_mesh(
+    let mshline = del_msh::edge2vtx::from_polygon_mesh(
         elem2idx.as_slice().unwrap(), idx2vtx.as_slice().unwrap(), num_vtx);
     numpy::ndarray::Array2::from_shape_vec(
         (mshline.len() / 2, 2), mshline).unwrap().into_pyarray(py)

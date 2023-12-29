@@ -21,18 +21,6 @@ def edges_of_aabb(aabb: NDArray[Shape["*, *"], Float]) \
         return edge2node2xyz
 
 
-def self_intersection_trimesh3(
-        tri2vtx: NDArray[Shape["*, *"], UInt],
-        vtx2xyz: NDArray[Shape["*, *"], Float],
-        bvhnodes: NDArray[Shape["*, *"], UInt],
-        aabbs: NDArray[Shape["*, *"], Float],
-        i_bvhnode_root=0):
-    if vtx2xyz.shape[1] == 3:
-        assert bvhnodes.shape[1] == 3
-        assert aabbs.shape[1] == 6
-        from .del_msh import bvh3_self_intersection_trimesh3
-        return bvh3_self_intersection_trimesh3(tri2vtx, vtx2xyz, bvhnodes, aabbs, i_bvhnode_root)
-
 
 def aabb_uniform_mesh(
         elem2vtx: NDArray[Shape["*, 3"], UInt],

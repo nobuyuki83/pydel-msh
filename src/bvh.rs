@@ -1,4 +1,3 @@
-use numpy::ToPyArray;
 
 pub fn add_functions(_py: pyo3::Python, m: &pyo3::types::PyModule) -> pyo3::PyResult<()> {
     use pyo3::wrap_pyfunction;
@@ -9,12 +8,10 @@ pub fn add_functions(_py: pyo3::Python, m: &pyo3::types::PyModule) -> pyo3::PyRe
     // geometry
     m.add_function(wrap_pyfunction!(build_bvh_geometry_aabb_uniformmesh_f32, m)?)?;
     m.add_function(wrap_pyfunction!(build_bvh_geometry_aabb_uniformmesh_f64, m)?)?;
-    // related to self-collision
-    m.add_function(wrap_pyfunction!(bvh3_self_intersection_trimesh3, m)?)?;
-    m.add_function(wrap_pyfunction!(ccd_intersection_time, m)?)?;
     Ok(())
 }
 
+// TODO make this function for uniforma mesh
 #[pyo3::pyfunction]
 fn build_bvh_topology_topdown<'a>(
     _py: pyo3::Python<'a>,
@@ -23,7 +20,8 @@ fn build_bvh_topology_topdown<'a>(
 {
     let tri2vtx = tri2vtx.as_slice().unwrap();
     let vtx2xyz = vtx2xyz.as_slice().unwrap();
-    let bvhnodes = del_msh::bvh3::build_topology_for_triangle_mesh(tri2vtx, vtx2xyz);
+    // change this to uniform mesh
+    let bvhnodes = del_msh::bvh3_topology_topdown::from_triangle_mesh(tri2vtx, vtx2xyz);
     let bvhnodes = numpy::PyArray1::<usize>::from_slice(_py, &bvhnodes);
     bvhnodes.reshape((bvhnodes.len() / 3, 3)).unwrap()
 }
@@ -38,14 +36,14 @@ fn build_bvh_topology_morton<'a>(
     let mut idx2vtx = vec!(0usize; num_vtx);
     let mut idx2morton = vec!(0u32; num_vtx);
     let mut vtx2morton = vec!(0u32; num_vtx);
-    del_msh::bvh3_morton::sorted_morten_code(
+    del_msh::bvh3_topology_morton::sorted_morten_code(
         &mut idx2vtx, &mut idx2morton, &mut vtx2morton,
         vtx2xyz);
     let bvhnodes = numpy::PyArray2::<usize>::zeros(
         _py, (num_vtx * 2 - 1, 3), false);
     {
         let bvhnodes_slice = unsafe { bvhnodes.as_slice_mut().unwrap() };
-        del_msh::bvh3_morton::bvhnodes_morton(
+        del_msh::bvh3_topology_morton::bvhnodes_morton(
             bvhnodes_slice, &idx2vtx, &idx2morton);
     }
     bvhnodes
@@ -129,72 +127,3 @@ fn build_bvh_geometry_aabb_uniformmesh_f64<'a>(
         _py, aabbs, bvhnodes, tri2vtx, vtx2xyz0, i_bvhnode_root, vtx2xyz1);
 }
 
-
-#[pyo3::pyfunction]
-fn bvh3_self_intersection_trimesh3<'a>(
-    _py: pyo3::Python<'a>,
-    tri2vtx: numpy::PyReadonlyArray2<'a, usize>,
-    vtx2xyz: numpy::PyReadonlyArray2<'a, f32>,
-    bvhnodes: numpy::PyReadonlyArray2<'a, usize>,
-    aabbs: numpy::PyReadonlyArray2<'a, f32>,
-    i_bvhnode_root: usize)
-    -> (&'a numpy::PyArray3<f32>, &'a numpy::PyArray2<usize>)
-{
-    let tri2vtx = tri2vtx.as_slice().unwrap();
-    let vtx2xyz = vtx2xyz.as_slice().unwrap();
-    let bvhnodes = bvhnodes.as_slice().unwrap();
-    let aabbs = aabbs.as_slice().unwrap();
-    type TriPair = del_msh::bvh3_selfintersection::IntersectingPair<f32>;
-    let mut pairs = Vec::<TriPair>::new();
-    del_msh::bvh3_selfintersection::intersection_triangle_mesh_inside_branch(
-        &mut pairs,
-        tri2vtx, vtx2xyz,
-        i_bvhnode_root, bvhnodes, aabbs);
-    let mut edge2node2xyz = Vec::<f32>::new();
-    let mut edge2tri = Vec::<usize>::new();
-    for pair in pairs.iter() {
-        edge2node2xyz.extend(pair.p0.iter());
-        edge2node2xyz.extend(pair.p1.iter());
-        edge2tri.push(pair.i_tri);
-        edge2tri.push(pair.j_tri);
-    }
-    (
-        numpy::ndarray::Array3::from_shape_vec(
-            (edge2node2xyz.len() / 6, 2, 3), edge2node2xyz).unwrap().to_pyarray(_py),
-        numpy::ndarray::Array2::from_shape_vec(
-            (edge2tri.len() / 2, 2), edge2tri).unwrap().to_pyarray(_py)
-    )
-}
-
-#[pyo3::pyfunction]
-fn ccd_intersection_time<'a>(
-    _py: pyo3::Python<'a>,
-    edge2vtx: numpy::PyReadonlyArray2<'a, usize>,
-    tri2vtx: numpy::PyReadonlyArray2<'a, usize>,
-    vtx2xyz0: numpy::PyReadonlyArray2<'a, f32>,
-    vtx2xyz1: numpy::PyReadonlyArray2<'a, f32>,
-    bvhnodes: numpy::PyReadonlyArray2<'a, usize>,
-    aabbs: numpy::PyReadonlyArray2<'a, f32>,
-    roots: Vec<usize>)
-    -> (&'a numpy::PyArray2<usize>, &'a numpy::PyArray1<f32>)
-{
-    assert_eq!(bvhnodes.shape()[0], aabbs.shape()[0]);
-    assert_eq!(roots.len(), 3);
-    let edge2vtx = edge2vtx.as_slice().unwrap();
-    let tri2vtx = tri2vtx.as_slice().unwrap();
-    let vtx2xyz0 = vtx2xyz0.as_slice().unwrap();
-    let vtx2xyz1 = vtx2xyz1.as_slice().unwrap();
-    let bvhnodes = bvhnodes.as_slice().unwrap();
-    let aabbs = aabbs.as_slice().unwrap();
-    let mut intersecting_pair = Vec::<usize>::new();
-    let mut intersecting_time = Vec::<f32>::new();
-    del_msh::bvh3_ccd::intersection_time(
-        &mut intersecting_pair, &mut intersecting_time,
-        edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1,
-        bvhnodes, aabbs, &roots);
-    (
-        numpy::ndarray::Array2::from_shape_vec(
-            (intersecting_pair.len() / 3, 3), intersecting_pair).unwrap().to_pyarray(_py),
-        numpy::ndarray::Array1::from_vec(intersecting_time).to_pyarray(_py)
-    )
-}

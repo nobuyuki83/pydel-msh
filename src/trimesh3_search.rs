@@ -1,5 +1,6 @@
-use numpy::{PyReadonlyArray1, PyReadonlyArray2,
-            PyArray1};
+use numpy::{
+    PyReadonlyArray1, PyReadonlyArray2,
+    PyArray1};
 use pyo3::{types::PyModule, PyResult, Python};
 
 pub fn add_functions(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -22,7 +23,7 @@ fn first_intersection_ray_meshtri3<'a>(
     vtx2xyz: PyReadonlyArray2<'a, f32>,
     tri2vtx: PyReadonlyArray2<'a, usize>) -> (&'a PyArray1<f32>, i64)
 {
-    let res = del_msh::trimesh3_search::first_intersection_ray(
+    let res = del_msh::trimesh3_search_bruteforce::first_intersection_ray(
         src.as_slice().unwrap(),
         dir.as_slice().unwrap(),
         vtx2xyz.as_slice().unwrap(),
@@ -41,12 +42,12 @@ fn first_intersection_ray_meshtri3<'a>(
 
 #[pyo3::pyfunction]
 fn pick_vertex_meshtri3<'a>(
-    src: PyReadonlyArray1<'a, f32>,
-    dir: PyReadonlyArray1<'a, f32>,
+    tri2vtx: PyReadonlyArray2<'a, usize>,
     vtx2xyz: PyReadonlyArray2<'a, f32>,
-    tri2vtx: PyReadonlyArray2<'a, usize>) -> i64
+    src: PyReadonlyArray1<'a, f32>,
+    dir: PyReadonlyArray1<'a, f32>) -> i64
 {
-    let res = del_msh::trimesh3_search::first_intersection_ray(
+    let res = del_msh::trimesh3_search_bruteforce::first_intersection_ray(
         src.as_slice().unwrap(),
         dir.as_slice().unwrap(),
         vtx2xyz.as_slice().unwrap(),
@@ -74,3 +75,4 @@ fn pick_vertex_meshtri3<'a>(
         }
     }
 }
+

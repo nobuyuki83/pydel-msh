@@ -13,7 +13,9 @@ def test_tri_self_intersection():
     assert bvhnodes.shape[0] == aabbs.shape[0]
     assert aabbs.shape[1] == 6
     assert numpy.linalg.norm(aabbs[0] - numpy.array([-1., -1., -1., 1., 1., 1])) < 1.0e-5
-    edge2node2xyz, edge2tri = BVH.self_intersection_trimesh3(tri2vtx, vtx2xyz, bvhnodes, aabbs)
+    edge2node2xyz0, edge2tri0 = TriMesh.self_intersection(tri2vtx, vtx2xyz)
+    edge2node2xyz, edge2tri = TriMesh.self_intersection(tri2vtx, vtx2xyz, bvhnodes, aabbs)
+    assert edge2node2xyz0.shape == edge2node2xyz.shape
     assert edge2node2xyz.shape[0] == 0
 
 
@@ -26,14 +28,20 @@ def test_ccd():
     vtx2xyz1 = vtx2xyz0 + 1.0 * vtx2uvw
     bvhnodes, roots = TriMesh.bvhnodes_vtxedgetri(edge2vtx, tri2vtx, vtx2xyz0)
     aabbs = TriMesh.aabb_vtxedgetri(edge2vtx, tri2vtx, vtx2xyz0, bvhnodes, roots, vtx2xyz1=vtx2xyz1)
+    pairs0, times0 = TriMesh.ccd_intersection_time(edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1)
     pairs, times = TriMesh.ccd_intersection_time(edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1, bvhnodes, aabbs, roots)
+    assert pairs0.shape == pairs.shape
     intersecting_time = numpy.min(times)
     assert math.fabs(intersecting_time-0.5) < 1.0e-5
     #
     vtx2xyz1 = vtx2xyz0 + intersecting_time * 0.999 * vtx2uvw
-    edge2node2xyz, edge2tri = BVH.self_intersection_trimesh3(tri2vtx, vtx2xyz1, bvhnodes, aabbs, roots[2])
+    edge2node2xyz0, edge2tri0 = TriMesh.self_intersection(tri2vtx, vtx2xyz1)
+    edge2node2xyz, edge2tri = TriMesh.self_intersection(tri2vtx, vtx2xyz1, bvhnodes, aabbs, roots[2])
+    assert edge2node2xyz0.shape == edge2node2xyz.shape
     assert edge2node2xyz.shape[0] == 0
     #
     vtx2xyz1 = vtx2xyz0 + intersecting_time * 1.001 * vtx2uvw
-    edge2node2xyz, edge2tri = BVH.self_intersection_trimesh3(tri2vtx, vtx2xyz1, bvhnodes, aabbs, roots[2])
+    edge2node2xyz0, edge2tri0 = TriMesh.self_intersection(tri2vtx, vtx2xyz1)
+    edge2node2xyz, edge2tri = TriMesh.self_intersection(tri2vtx, vtx2xyz1, bvhnodes, aabbs, roots[2])
+    assert edge2node2xyz0.shape == edge2node2xyz.shape
     assert edge2node2xyz.shape[0] != 0

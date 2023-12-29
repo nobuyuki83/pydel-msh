@@ -107,7 +107,7 @@ def hemisphere(
 
 # above: primitive
 # ------------------------------
-# below: misc
+# below: io
 
 def load_wavefront_obj(
         path_file: str,
@@ -127,6 +127,23 @@ def load_nastran(
     from .del_msh import load_nastran_as_triangle_mesh
     return load_nastran_as_triangle_mesh(path_file)
 
+
+def load_off(
+        path_file: str,
+        is_centerize=False,
+        normalized_size: typing.Optional[float] = None):
+    from .del_msh import load_off_as_triangle_mesh
+    tri2vtx, vtx2xyz = load_off_as_triangle_mesh(path_file)
+    if is_centerize:
+        vtx2xyz[:] -= (vtx2xyz.max(axis=0) + vtx2xyz.min(axis=0)) * 0.5
+    if type(normalized_size) == float:
+        vtx2xyz *= normalized_size / (vtx2xyz.max(axis=0) - vtx2xyz.min(axis=0)).max()
+    return tri2vtx, vtx2xyz
+
+
+# above: io
+# --------------------------------
+# below: misc
 
 def unindexing(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
@@ -163,36 +180,6 @@ def merge(
 
 
 # above: property
-# ---------------------
-# below: search
-
-def first_intersection_ray(
-        src,
-        dir,
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float]) -> [NDArray[Shape["3"], Float], int]:
-    """
-    compute first intersection of a ray against a triangle mesh
-    :param src: source of ray
-    :param dir: direction of ray (can be un-normalized vector)
-    :param tri2vtx: triangle index
-    :param vtx2xyz: vertex positions
-    :return: position and triangle index
-    """
-    from .del_msh import first_intersection_ray_meshtri3
-    return first_intersection_ray_meshtri3(src, dir, tri2vtx, vtx2xyz)
-
-
-def pick_vertex(
-        src,
-        dir,
-        tri2vtx,
-        vtx2xyz):
-    from .del_msh import pick_vertex_meshtri3
-    return pick_vertex_meshtri3(src, dir, tri2vtx, vtx2xyz)
-
-
-# above: search
 # ------------------------
 # below: sampling
 
@@ -252,7 +239,7 @@ def merge_hessian_mesh_laplacian(
 def bvhnodes_tri(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         vtx2xyz: NDArray[Shape["*, *"], Float],
-        is_morton = True) \
+        is_morton=True) \
         -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, *"], Float]):
     """
     2D and 3D bvh tree topoloty geneartion
@@ -261,28 +248,30 @@ def bvhnodes_tri(
     :return: array of bvh nodes (X-by-3 matrix)
     """
     if is_morton:
-        tri2center = (vtx2xyz[tri2vtx[:,0],:]+vtx2xyz[tri2vtx[:,1],:]+vtx2xyz[tri2vtx[:,2],:]) / 3
-        del_msh.fit_into_unit_cube(tri2center) # fit the points inside unit cube [0,1]^3
+        tri2center = (vtx2xyz[tri2vtx[:, 0], :] + vtx2xyz[tri2vtx[:, 1], :] + vtx2xyz[tri2vtx[:, 2], :]) / 3
+        del_msh.fit_into_unit_cube(tri2center)  # fit the points inside unit cube [0,1]^3
         from .del_msh import build_bvh_topology_morton
         return build_bvh_topology_morton(tri2center)
     else:
         from .del_msh import build_bvh_topology_topdown
         return build_bvh_topology_topdown(tri2vtx, vtx2xyz)
 
+
 def aabbs_tri(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         vtx2xyz0: NDArray[Shape["*, *"], Float],
         bvhnodes: NDArray[Shape["*, 3"], UInt],
-        aabbs = None,
-        i_bvhnode_root = 0):
+        aabbs=None,
+        i_bvhnode_root=0):
     from del_msh.BVH import aabb_uniform_mesh
     return aabb_uniform_mesh(tri2vtx, vtx2xyz0, bvhnodes, aabbs, i_bvhnode_root)
+
 
 def bvhnodes_vtxedgetri(
         edge2vtx: NDArray[Shape["*, 3"], UInt],
         tri2vtx: NDArray[Shape["*, 3"], UInt],
         vtx2xyz: NDArray[Shape["*, *"], Float]) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, *"], Float]):
+        -> (NDArray[Shape["*, 3"], UInt], typing.List[int]):
     vtx2center = vtx2xyz.copy()
     edge2center = (vtx2xyz[edge2vtx[:, 0], :] + vtx2xyz[edge2vtx[:, 1], :]) / 2
     tri2center = (vtx2xyz[tri2vtx[:, 0], :] + vtx2xyz[tri2vtx[:, 1], :] + vtx2xyz[tri2vtx[:, 2], :]) / 3
@@ -294,21 +283,22 @@ def bvhnodes_vtxedgetri(
     bvhnodes_edge = build_bvh_topology_morton(edge2center)
     bvhnodes_tri = build_bvh_topology_morton(tri2center)
     # print(vtx2xyz.shape, edge2vtx.shape, tri2vtx.shape)
-    #print(bvhnodes_vtx.shape, bvhnodes_edge.shape, bvhnodes_tri.shape)
+    # print(bvhnodes_vtx.shape, bvhnodes_edge.shape, bvhnodes_tri.shape)
     from .del_msh import shift_bvhnodes
     shift_bvhnodes(bvhnodes_edge, bvhnodes_vtx.shape[0], 0)
-    shift_bvhnodes(bvhnodes_tri, bvhnodes_vtx.shape[0]+bvhnodes_edge.shape[0], 0)
+    shift_bvhnodes(bvhnodes_tri, bvhnodes_vtx.shape[0] + bvhnodes_edge.shape[0], 0)
     bvhnodes = numpy.vstack([bvhnodes_vtx, bvhnodes_edge, bvhnodes_tri])
-    return bvhnodes, [0,bvhnodes_vtx.shape[0],bvhnodes_vtx.shape[0]+bvhnodes_edge.shape[0]]
+    return bvhnodes, [0, bvhnodes_vtx.shape[0], bvhnodes_vtx.shape[0] + bvhnodes_edge.shape[0]]
+
 
 def aabb_vtxedgetri(
         edge2vtx,
         tri2vtx,
         vtx2xyz0,
         bvhnodes,
-        roots : typing.List[int],
+        roots: typing.List[int],
         aabbs=None,
-        vtx2xyz1 = None):
+        vtx2xyz1=None):
     """
     :param edge2vtx:
     :param tri2vtx:
@@ -323,7 +313,7 @@ def aabb_vtxedgetri(
     from del_msh.BVH import aabb_uniform_mesh
     # vertex
     aabbs = aabb_uniform_mesh(
-        numpy.zeros((0,0), dtype=numpy.uint64), vtx2xyz0, bvhnodes,
+        numpy.zeros((0, 0), dtype=numpy.uint64), vtx2xyz0, bvhnodes,
         aabbs=aabbs, root=roots[0], vtx2xyz1=vtx2xyz1)
     # edge
     aabbs = aabb_uniform_mesh(
@@ -335,16 +325,86 @@ def aabb_vtxedgetri(
         aabbs=aabbs, root=roots[0], vtx2xyz1=vtx2xyz1)
     return aabbs
 
+
+# -------------------------------------
+# search related
+
+# TODO: make brute force version
 def ccd_intersection_time(
         edge2vtx,
         tri2vtx,
         vtx2xyz0,
         vtx2xyz1,
-        bvhnodes,
-        aabbs,
-        roots: typing.List[int]):
-    assert bvhnodes.shape[0] == aabbs.shape[0]
-    assert vtx2xyz0.shape == vtx2xyz1.shape
-    assert bvhnodes.shape[0] == vtx2xyz0.shape[0]*2-1 + edge2vtx.shape[0]*2-1 + tri2vtx.shape[0]*2-1
+        bvhnodes: typing.Optional[numpy.ndarray] = None,
+        aabbs: typing.Optional[numpy.ndarray] = None,
+        roots: typing.Optional[typing.List[int]] = None):
     from .del_msh import ccd_intersection_time
-    return ccd_intersection_time(edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1, bvhnodes, aabbs, roots)
+    if not bvhnodes is None:
+        assert bvhnodes.shape[0] == aabbs.shape[0]
+        assert vtx2xyz0.shape == vtx2xyz1.shape
+        assert bvhnodes.shape[0] == vtx2xyz0.shape[0] * 2 - 1 + edge2vtx.shape[0] * 2 - 1 + tri2vtx.shape[0] * 2 - 1
+        return ccd_intersection_time(
+            edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1,
+            bvhnodes, aabbs, roots)
+    else:
+        return ccd_intersection_time(
+            edge2vtx, tri2vtx, vtx2xyz0, vtx2xyz1,
+            numpy.zeros((0, 3), dtype=numpy.uint64),
+            numpy.zeros((0, 6), dtype=vtx2xyz0.dtype), [])
+
+
+def first_intersection_ray(
+        src,
+        dir,
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz: NDArray[Shape["*, 3"], Float]) -> [NDArray[Shape["3"], Float], int]:
+    """
+    compute first intersection of a ray against a triangle mesh
+    :param src: source of ray
+    :param dir: direction of ray (can be un-normalized vector)
+    :param tri2vtx: triangle index
+    :param vtx2xyz: vertex positions
+    :return: position and triangle index
+    """
+    from .del_msh import first_intersection_ray_meshtri3
+    return first_intersection_ray_meshtri3(src, dir, tri2vtx, vtx2xyz)
+
+
+def pick_vertex(
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz: NDArray[Shape["*, 3"], Float],
+        src: NDArray[Shape["3"], Float],
+        dir: NDArray[Shape["3"], Float]):
+    from .del_msh import pick_vertex_meshtri3
+    return pick_vertex_meshtri3(tri2vtx, vtx2xyz, src, dir)
+
+
+def self_intersection(
+        tri2vtx: NDArray[Shape["*, *"], UInt],
+        vtx2xyz: NDArray[Shape["*, *"], Float],
+        bvhnodes: typing.Optional[NDArray[Shape["*, *"], UInt]] = None,
+        aabbs: typing.Optional[NDArray[Shape["*, *"], Float]] = None,
+        i_bvhnode_root: typing.Optional[int] = 0):
+    if vtx2xyz.shape[1] == 3:
+        from .del_msh import intersection_trimesh3
+        if bvhnodes is None:
+            return intersection_trimesh3(
+                tri2vtx, vtx2xyz,
+                numpy.zeros((0,3), dtype=numpy.uint64),
+                numpy.zeros((0,6), dtype=vtx2xyz.dtype),
+                0)
+        else:
+            assert bvhnodes.shape[1] == 3
+            assert aabbs.shape[1] == 6
+            return intersection_trimesh3(
+                tri2vtx, vtx2xyz,
+                bvhnodes, aabbs, i_bvhnode_root)
+
+
+def contacting_pair(
+        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        vtx2xyz: NDArray[Shape["*, 3"], Float],
+        edge2vtx: NDArray[Shape["*, 3"], UInt],
+        threshold: float):
+    from .del_msh import contacting_pair
+    return contacting_pair(tri2vtx, vtx2xyz, edge2vtx, threshold)

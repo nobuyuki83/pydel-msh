@@ -18,6 +18,6 @@ num-traits = "0.2.17"
 #del-msh = {path="../del-msh"}
 #del-geo = {path="../del-geo"}
 #del-dtri = {path="../del-dtri"}
-del-msh = "0.1.21"
-del-geo = "0.1.13"
+del-msh = "0.1.22"
+del-geo = "0.1.14"
 del-dtri = "0.1.3"
