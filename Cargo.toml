@@ -9,7 +9,7 @@ name = "del_msh"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.20.0", features = ["extension-module"] }
+pyo3 = { version = "0.20.2", features = ["extension-module"] }
 nalgebra = "0.32.3"
 numpy = "0.20.0"
 num-traits = "0.2.17"
@@ -18,6 +18,6 @@ num-traits = "0.2.17"
 #del-msh = {path="../del-msh"}
 #del-geo = {path="../del-geo"}
 #del-dtri = {path="../del-dtri"}
-del-msh = "0.1.22"
-del-geo = "0.1.14"
+del-msh = "0.1.23"
+del-geo = "0.1.15"
 del-dtri = "0.1.3"

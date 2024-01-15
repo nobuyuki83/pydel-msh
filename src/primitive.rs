@@ -17,7 +17,7 @@ fn torus_meshtri3(
     py: Python,
     radius: f64, radius_tube: f64,
     nlg: usize, nlt: usize) -> (&PyArray2<usize>, &PyArray2<f64>) {
-    let (tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::from_torus::<f64>(
+    let (tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::torus_yup::<f64>(
         radius, radius_tube, nlg, nlt);
     let v = numpy::ndarray::Array2::from_shape_vec(
         (vtx_xyz.len()/3,3), vtx_xyz).unwrap();
@@ -31,7 +31,7 @@ fn capsule_meshtri3(
     py: Python,
     r: f64, l: f64,
     nc: usize, nr: usize, nl: usize) -> (&PyArray2<usize>, &PyArray2<f64>) {
-    let ( tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::from_capsule::<f64>(
+    let ( tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::capsule_yup::<f64>(
         r, l, nc, nr, nl);
     let v = numpy::ndarray::Array2::from_shape_vec(
         (vtx_xyz.len()/3,3), vtx_xyz).unwrap();
@@ -45,7 +45,7 @@ fn cylinder_closed_end_meshtri3(
     py: Python,
     r: f64, l: f64,
     nr: usize, nl: usize) -> (&PyArray2<usize>, &PyArray2<f64>) {
-    let (tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::from_cylinder_closed_end::<f64>(
+    let (tri_vtx, vtx_xyz) = del_msh::trimesh3_primitive::cylinder_closed_end_yup::<f64>(
         r, l, nr, nl);
     let v = numpy::ndarray::Array2::from_shape_vec(
         (vtx_xyz.len()/3,3), vtx_xyz).unwrap();
@@ -59,7 +59,7 @@ fn sphere_meshtri3(
     py: Python,
     r: f32,
     nr: usize, nl: usize) -> (&PyArray2<usize>, &PyArray2<f32>) {
-    let ( tri2vtx, vtx2xyz) = del_msh::trimesh3_primitive::from_sphere(
+    let ( tri2vtx, vtx2xyz) = del_msh::trimesh3_primitive::sphere_yup(
         r, nr, nl);
     let v = numpy::ndarray::Array2::from_shape_vec(
         (vtx2xyz.len()/3, 3), vtx2xyz).unwrap();
@@ -73,7 +73,7 @@ fn trimesh3_hemisphere_zup(
     py: Python,
     r: f32,
     nr: usize, nl: usize) -> (&PyArray2<usize>, &PyArray2<f32>) {
-    let ( tri2vtx, vtx2xyz) = del_msh::trimesh3_primitive::from_hemisphere_zup(
+    let ( tri2vtx, vtx2xyz) = del_msh::trimesh3_primitive::hemisphere_zup(
         r, nr, nl);
     (
         numpy::ndarray::Array2::from_shape_vec(
