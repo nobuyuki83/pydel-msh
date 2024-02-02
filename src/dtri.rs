@@ -8,7 +8,8 @@ pub fn add_functions(_py: pyo3::Python, m: &pyo3::types::PyModule) -> pyo3::PyRe
 #[pyo3::pyfunction]
 pub fn tesselation2d<'a>(
     py: pyo3::Python<'a>,
-    vtx2xy_in: numpy::PyReadonlyArray2<'a, f32>)
+    vtx2xy_in: numpy::PyReadonlyArray2<'a, f32>,
+    resolution_face: f32)
     -> (&'a numpy::PyArray2<usize>, &'a numpy::PyArray2<f32>)
 {
     let num_vtx = vtx2xy_in.shape()[0];
@@ -27,6 +28,17 @@ pub fn tesselation2d<'a>(
     del_dtri::mesher2::meshing_single_connected_shape2(
         &mut pnt2tri, &mut vtx2xy, &mut tri2pnt,
         &loop2idx, &idx2vtx);
+    // ----------------------------------------
+    if resolution_face > 1.0e-10 {
+        let nvtx = vtx2xy.len();
+        let mut vtx2flag = vec!(0;nvtx);
+        let mut tri2flag = vec!(0;tri2pnt.len());
+        del_dtri::mesher2::meshing_inside(
+            &mut pnt2tri, &mut tri2pnt, &mut vtx2xy,
+            &mut vtx2flag, &mut tri2flag,
+            nvtx, 0, resolution_face);
+    }
+    // ----------------------------------------
     let mut vtx2xy_out = Vec::<f32>::new();
     for xy in vtx2xy.iter() {
         vtx2xy_out.push(xy.x);

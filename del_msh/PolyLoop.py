@@ -1,9 +1,10 @@
 import numpy
 
 
-def tesselation2d(vtx2xy):
+def tesselation2d(vtx2xy, resolution_face=-1.0):
     from .del_msh import tesselation2d
-    return tesselation2d(vtx2xy)
+    return tesselation2d(vtx2xy, resolution_face)
+
 
 
 def area2(vtx2xy: numpy.ndarray) -> float:
