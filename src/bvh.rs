@@ -18,6 +18,9 @@ fn build_bvh_topology_topdown<'a>(
     tri2vtx: numpy::PyReadonlyArray2<'a, usize>,
     vtx2xyz: numpy::PyReadonlyArray2<'a, f32>) -> &'a numpy::PyArray2<usize>
 {
+    assert!(tri2vtx.is_c_contiguous());
+    assert!(vtx2xyz.is_c_contiguous());
+    assert_eq!(vtx2xyz.shape()[1],3);
     let tri2vtx = tri2vtx.as_slice().unwrap();
     let vtx2xyz = vtx2xyz.as_slice().unwrap();
     // change this to uniform mesh
@@ -32,6 +35,8 @@ fn build_bvh_topology_morton<'a>(
     vtx2xyz: numpy::PyReadonlyArray2<'a, f32>) -> &'a numpy::PyArray2<usize>
 {
     let num_vtx = vtx2xyz.shape()[0];
+    assert!(vtx2xyz.is_c_contiguous());
+    assert_eq!(vtx2xyz.shape(),[num_vtx,3]);
     let vtx2xyz = vtx2xyz.as_slice().unwrap();
     let mut idx2vtx = vec!(0usize; num_vtx);
     let mut idx2morton = vec!(0u32; num_vtx);
@@ -57,6 +62,7 @@ fn shift_bvhnodes<'a>(
     node_offset: usize,
     idx_offset: usize)
 {
+    assert!(bvhnodes.is_c_contiguous());
     let num_bvhnode = bvhnodes.shape()[0];
     assert_eq!(bvhnodes.shape()[1], 3);
     let bvhnodes = bvhnodes.as_slice_mut().unwrap();
@@ -84,6 +90,11 @@ fn build_bvh_geometry_aabb_uniformmesh<'a, T>(
     vtx2xyz1: numpy::PyReadonlyArray2<'a, T>)
     where T: numpy::Element + num_traits::Float
 {
+    assert!(aabbs.is_c_contiguous());
+    assert!(bvhnodes.is_c_contiguous());
+    assert!(elem2vtx.is_c_contiguous());
+    assert!(vtx2xyz0.is_c_contiguous());
+    assert!(vtx2xyz1.is_c_contiguous());
     assert_eq!(bvhnodes.shape()[0], aabbs.shape()[0]);
     assert_eq!(bvhnodes.shape()[1], 3);
     assert_eq!(aabbs.shape()[1], 6);
@@ -109,7 +120,8 @@ fn build_bvh_geometry_aabb_uniformmesh_f32<'a>(
     tri2vtx: numpy::PyReadonlyArray2<'a, usize>,
     vtx2xyz0: numpy::PyReadonlyArray2<'a, f32>,
     i_bvhnode_root: usize,
-    vtx2xyz1: numpy::PyReadonlyArray2<'a, f32>) {
+    vtx2xyz1: numpy::PyReadonlyArray2<'a, f32>)
+{
     build_bvh_geometry_aabb_uniformmesh::<f32>(
         _py, aabbs, bvhnodes, tri2vtx, vtx2xyz0, i_bvhnode_root, vtx2xyz1);
 }
@@ -122,7 +134,8 @@ fn build_bvh_geometry_aabb_uniformmesh_f64<'a>(
     tri2vtx: numpy::PyReadonlyArray2<'a, usize>,
     vtx2xyz0: numpy::PyReadonlyArray2<'a, f64>,
     i_bvhnode_root: usize,
-    vtx2xyz1: numpy::PyReadonlyArray2<'a, f64>) {
+    vtx2xyz1: numpy::PyReadonlyArray2<'a, f64>)
+{
     build_bvh_geometry_aabb_uniformmesh::<f64>(
         _py, aabbs, bvhnodes, tri2vtx, vtx2xyz0, i_bvhnode_root, vtx2xyz1);
 }

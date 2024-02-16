@@ -12,12 +12,12 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.20.2", features = ["extension-module"] }
 nalgebra = "0.32.3"
 numpy = "0.20.0"
-num-traits = "0.2.17"
+num-traits = "0.2.18"
 
 
 del-msh = {path="../del-msh"}
 del-geo = {path="../del-geo"}
 del-dtri = {path="../del-dtri"}
 # del-msh = "0.1.23"
-# del-geo = "0.1.15"
+# del-geo = "0.1.18"
 # del-dtri = "0.1.3"

@@ -12,6 +12,7 @@ fn elem2elem_uniform_mesh_polygon_indexing<'a>(
     py: pyo3::Python<'a>,
     elem2vtx: numpy::PyReadonlyArray2<'a, usize>,
     num_vtx: usize) -> &'a numpy::PyArray2<usize> {
+    assert!(elem2vtx.is_c_contiguous());
     let num_node = elem2vtx.shape()[1];
     let (face2idx, idx2node) = del_msh::elem2elem::face2node_of_polygon_element(num_node);
     let elem2elem = del_msh::elem2elem::from_uniform_mesh(
@@ -27,6 +28,7 @@ fn elem2elem_uniform_mesh_simplex_indexing<'a>(
     py: pyo3::Python<'a>,
     elem2vtx: numpy::PyReadonlyArray2<'a, usize>,
     num_vtx: usize) -> &'a numpy::PyArray2<usize> {
+    assert!(elem2vtx.is_c_contiguous());
     let num_node = elem2vtx.shape()[1];
     let (face2idx, idx2node)
         = del_msh::elem2elem::face2node_of_simplex_element(num_node);

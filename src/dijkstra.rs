@@ -14,6 +14,7 @@ pub fn topological_distance_on_uniform_mesh<'a>(
     py: Python<'a>,
     ielm_ker: usize,
     elsuel: PyReadonlyArray2<'a, usize>) -> &'a PyArray1<usize> {
+    assert!(elsuel.is_c_contiguous());
     let num_elem = elsuel.shape()[0];
     let elem2dist = del_msh::dijkstra::topological_distance_on_uniform_mesh(
         ielm_ker,

@@ -1,9 +1,9 @@
 import numpy
 
 
-def tesselation2d(vtx2xy, resolution_face=-1.0):
+def tesselation2d(vtx2xy, resolution_edge=-1., resolution_face=-1.):
     from .del_msh import tesselation2d
-    return tesselation2d(vtx2xy, resolution_face)
+    return tesselation2d(vtx2xy, resolution_edge, resolution_face)
 
 
 

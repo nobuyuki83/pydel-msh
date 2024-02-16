@@ -26,11 +26,13 @@ fn triangles_from_polygon_mesh<'a>(
 fn vtx2vtx_trimesh<'a>(
     py: Python<'a>,
     tri2vtx: PyReadonlyArray2<'a, usize>,
-    num_vtx: usize ) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
+    num_vtx: usize,
+    is_self: bool) -> (&'a PyArray1<usize>, &'a PyArray1<usize>) {
     assert_eq!(tri2vtx.shape()[1], 3);
     let (vtx2idx, idx2vtx) = del_msh::vtx2vtx::from_uniform_mesh(
         tri2vtx.as_slice().unwrap(), 3,
-        num_vtx);
+        num_vtx,
+        is_self);
     (
         numpy::ndarray::Array1::from_vec(vtx2idx).into_pyarray(py),
         numpy::ndarray::Array1::from_vec(idx2vtx).into_pyarray(py)

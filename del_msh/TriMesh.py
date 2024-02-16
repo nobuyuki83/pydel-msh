@@ -1,13 +1,34 @@
 import typing
 #
 import numpy
+import numpy.typing
 from nptyping import Shape, NDArray, UInt, Float
 
 import del_msh
 
-
 # ------------------------------
 # below: topology
+
+def vtx2vtx(
+        tri2vtx: numpy.typing.NDArray,
+        num_vtx: int,
+        is_self = False) \
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
+    assert len(tri2vtx.shape) == 2
+    assert tri2vtx.shape[1] == 3
+    from .del_msh import vtx2vtx_trimesh
+    return vtx2vtx_trimesh(tri2vtx, num_vtx, is_self)
+
+
+def vtx2area(
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray):
+   from .del_msh import vtx2area_from_uniformmesh
+   return vtx2area_from_uniformmesh(tri2vtx, vtx2xyz)
+
+# above: topology > vtx2***
+# ---------------------------------------
+# below: topology > edge2***
 
 def edge2vtx(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
@@ -24,16 +45,9 @@ def edge2vtx(
     from .del_msh import edge2vtx_uniform_mesh
     return edge2vtx_uniform_mesh(tri2vtx, num_vtx)
 
-
-def vtx2vtx(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        num_vtx: int) \
-        -> (NDArray[Shape["*"], UInt], NDArray[Shape["*"], UInt]):
-    assert len(tri2vtx.shape) == 2
-    assert tri2vtx.shape[1] == 3
-    from .del_msh import vtx2vtx_trimesh
-    return vtx2vtx_trimesh(tri2vtx, num_vtx)
-
+# above: topology > edge2***
+# ---------------------------------------
+# below: topology > tri2***
 
 def tri2tri(
         tri2vtx: NDArray[Shape["*, 3"], UInt],
@@ -48,7 +62,6 @@ def tri2distance(
         tri2tri: NDArray[Shape["*, 3"], UInt]) -> NDArray[Shape["*"], UInt]:
     from .del_msh import topological_distance_on_uniform_mesh
     return topological_distance_on_uniform_mesh(idx_tri, tri2tri)
-
 
 # above: topology
 # ------------------------
@@ -220,17 +233,7 @@ def sample_many(
 
 # --------------------------------------
 
-def merge_hessian_mesh_laplacian(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz,
-        row2idx,
-        idx2col,
-        row2val, idx2val):
-    from .del_msh import merge_hessian_mesh_laplacian_on_trimesh
-    merge_hessian_mesh_laplacian_on_trimesh(
-        tri2vtx, vtx2xyz,
-        row2idx, idx2col,
-        row2val, idx2val)
+
 
 
 # ------------------------------------

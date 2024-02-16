@@ -1,4 +1,4 @@
-use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2, PyArray1};
+use numpy::{IntoPyArray, PyReadonlyArray2, PyArray1};
 use pyo3::{types::PyModule, PyResult, Python};
 
 mod topology;
@@ -18,7 +18,7 @@ mod bvh;
 mod kdtree;
 mod mesh_intersection;
 mod gradient_distance_extension;
-mod mesh_laplacian;
+mod vtx2area;
 
 /* ------------------------ */
 
@@ -42,7 +42,7 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
     kdtree::add_functions(_py, m)?;
     mesh_intersection::add_functions(_py, m)?;
     gradient_distance_extension::add_functions(_py, m)?;
-    mesh_laplacian::add_functions(_py, m)?;
+    vtx2area::add_functions(_py, m)?;
 
     #[pyfn(m)]
     pub fn areas_of_triangles_of_mesh<'a>(
@@ -50,6 +50,8 @@ fn del_msh_(_py: Python, m: &PyModule) -> PyResult<()> {
         tri2vtx: PyReadonlyArray2<'a, usize>,
         vtx2xyz: PyReadonlyArray2<'a, f32>,
     ) -> &'a PyArray1<f32> {
+        assert!(tri2vtx.is_c_contiguous());
+        assert!(vtx2xyz.is_c_contiguous());
         let tri2area = match vtx2xyz.shape()[1] {
             2 => {
                 del_msh::trimesh2::tri2area(
