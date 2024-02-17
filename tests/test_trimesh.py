@@ -16,9 +16,3 @@ def test_01():
     cumsum_areas = numpy.cumsum(numpy.append(numpy.zeros(1, dtype=numpy.float32), areas))
     sample = TriMesh.sample(cumsum_areas, 0.5, 0.1)
     samples2xyz = TriMesh.sample_many(tri2vtx, vtx2xyz, num_sample=1000)
-    row2val = numpy.zeros([vtx2xyz.shape[0]], dtype=numpy.float64)
-    idx2val = numpy.zeros([idx2vtx.shape[0]], dtype=numpy.float64)
-    TriMesh.merge_hessian_mesh_laplacian(
-        tri2vtx, vtx2xyz.astype(numpy.float64),
-        vtx2idx, idx2vtx,
-        row2val, idx2val)

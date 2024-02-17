@@ -26,4 +26,17 @@ jobs:
         with:
           command: build
           args: --release
-
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      - name: make virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install pytest
+      - uses: messense/maturin-action@v1
+        with:
+          command: develop
+          args: --release
+      - name: run pytest
+        run: |
+          python -m pytest        
