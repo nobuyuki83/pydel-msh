@@ -22,10 +22,6 @@ jobs:
         run: cargo check
       - name: Run test
         run: cargo test
-      - uses: messense/maturin-action@v1
-        with:
-          command: build
-          args: --release
       - name: Setup Python
         uses: actions/setup-python@v2
       - name: make virtual environment
@@ -33,7 +29,12 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           echo "VIRTUAL ENV:" $VIRTUAL_ENV
+      - name: install with maturin
+        run: |
           pip3 install maturin
+          maturin build --release
           maturin develop --release
+      - name: test with pytest
+        run: |
           pip3 install pytest
-          python3 -m pytest        
+          python3 -m pytest
