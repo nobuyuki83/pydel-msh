@@ -30,8 +30,7 @@ jobs:
         uses: actions/setup-python@v2
       - name: make virtual environment
         run: |
-          python -m venv venv
-          source venv/bin/activate
+          . .venv/bin/activate          
           pip install pytest
       - uses: messense/maturin-action@v1
         with:
