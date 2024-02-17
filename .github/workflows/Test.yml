@@ -24,17 +24,16 @@ jobs:
         run: cargo test
       - name: Setup Python
         uses: actions/setup-python@v2
-      - name: make virtual environment
+      - name: test
         run: |
           python3 -m venv venv
           source venv/bin/activate
           echo "VIRTUAL ENV:" $VIRTUAL_ENV
-      - name: install with maturin
-        run: |
+          echo "install maturin"
           pip3 install maturin
           maturin build --release
+          echo "install library using maturin"
           maturin develop --release
-      - name: test with pytest
-        run: |
+          echo "test library using pytest"
           pip3 install pytest
           python3 -m pytest
