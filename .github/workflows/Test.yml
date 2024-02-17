@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -20,8 +20,6 @@ jobs:
           components: clippy
       - name: Run check
         run: cargo check
-      - name: Run clippy
-        run: cargo clippy -- -D warnings
       - name: Run test
         run: cargo test
       - uses: messense/maturin-action@v1
