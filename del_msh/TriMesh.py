@@ -2,7 +2,6 @@ import typing
 #
 import numpy
 import numpy.typing
-from nptyping import Shape, NDArray, UInt, Float
 
 import del_msh
 
@@ -31,9 +30,9 @@ def vtx2area(
 # below: topology > edge2***
 
 def edge2vtx(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: numpy.typing.NDArray,
         num_vtx: int) \
-        -> NDArray[Shape["*, 2"], UInt]:
+        -> numpy.typing.NDArray:
     """
     compute line mesh connectivity from a triangle connectivity
     :param tri2vtx: triangle mesh connectivity
@@ -50,16 +49,16 @@ def edge2vtx(
 # below: topology > tri2***
 
 def tri2tri(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: numpy.typing.NDArray,
         num_vtx: int) \
-        -> NDArray[Shape["*, 3"], UInt]:
+        -> numpy.typing.NDArray:
     from .del_msh import elem2elem_uniform_mesh_polygon_indexing
     return elem2elem_uniform_mesh_polygon_indexing(tri2vtx, num_vtx)
 
 
 def tri2distance(
         idx_tri: int,
-        tri2tri: NDArray[Shape["*, 3"], UInt]) -> NDArray[Shape["*"], UInt]:
+        tri2tri: numpy.typing.NDArray) -> numpy.typing.NDArray:
     from .del_msh import topological_distance_on_uniform_mesh
     return topological_distance_on_uniform_mesh(idx_tri, tri2tri)
 
@@ -72,7 +71,7 @@ def torus(
         minor_radius=0.4,
         ndiv_major_radius=32,
         ndiv_minor_radius=32) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     from .del_msh import torus_meshtri3
     return torus_meshtri3(major_radius, minor_radius, ndiv_major_radius, ndiv_minor_radius)
 
@@ -83,7 +82,7 @@ def capsule(
         ndiv_theta: int = 32,
         ndiv_height: int = 32,
         ndiv_longtitude: int = 32) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     from .del_msh import capsule_meshtri3
     return capsule_meshtri3(radius, height, ndiv_theta, ndiv_longtitude, ndiv_height)
 
@@ -93,7 +92,7 @@ def cylinder(
         height: float = 1.,
         ndiv_theta: int = 32,
         ndiv_height: int = 8) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     from .del_msh import cylinder_closed_end_meshtri3
     return cylinder_closed_end_meshtri3(radius, height, ndiv_theta, ndiv_height)
 
@@ -102,7 +101,7 @@ def sphere(
         radius: float = 1.,
         ndiv_latitude: int = 32,
         ndiv_longtitude: int = 32) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     from .del_msh import sphere_meshtri3
     return sphere_meshtri3(radius, ndiv_latitude, ndiv_longtitude)
 
@@ -111,7 +110,7 @@ def hemisphere(
         radius: float = 1.,
         ndiv_longtitude: int = 32,
         ndiv_latitude: int = 32) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, 3"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     assert ndiv_longtitude > 0
     assert ndiv_latitude > 2
     from .del_msh import trimesh3_hemisphere_zup
@@ -159,17 +158,17 @@ def load_off(
 # below: misc
 
 def unindexing(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float]) \
-        -> NDArray[Shape["*, *, *"], Float]:
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray) \
+        -> numpy.typing.NDArray:
     from .del_msh import unidex_vertex_attribute_for_triangle_mesh
     return unidex_vertex_attribute_for_triangle_mesh(tri2vtx, vtx2xyz)
 
 
 def tri2area(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, *"], Float]) \
-        -> NDArray[Shape["*"], Float]:
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray) \
+        -> numpy.typing.NDArray:
     """
     Areas of the triangles in a 2D/3D mesh.
     :param tri2vtx:
@@ -182,10 +181,10 @@ def tri2area(
 
 
 def merge(
-        tri2vtx0: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz0: NDArray[Shape["*, 3"], Float],
-        tri2vtx1: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz1: NDArray[Shape["*, 3"], Float]):
+        tri2vtx0: numpy.typing.NDArray,
+        vtx2xyz0: numpy.typing.NDArray,
+        tri2vtx1: numpy.typing.NDArray,
+        vtx2xyz1: numpy.typing.NDArray):
     num_vtx0 = vtx2xyz0.shape[0]
     tri2vtx = numpy.vstack([tri2vtx0, tri2vtx1 + num_vtx0])
     vtx2xyz = numpy.vstack([vtx2xyz0, vtx2xyz1])
@@ -197,9 +196,9 @@ def merge(
 # below: sampling
 
 def position(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: numpy.ndarray,
-        idx_tri: int, r0: float, r1: float) -> numpy.ndarray:
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
+        idx_tri: int, r0: float, r1: float) -> numpy.typing.NDArray:
     i0 = tri2vtx[idx_tri][0]
     i1 = tri2vtx[idx_tri][1]
     i2 = tri2vtx[idx_tri][2]
@@ -218,7 +217,7 @@ def sample(
 
 
 def sample_many(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: numpy.typing.NDArray,
         vtx2xy, num_sample: int) -> numpy.ndarray:
     import random
     tri2area_ = tri2area(tri2vtx, vtx2xy)
@@ -231,19 +230,14 @@ def sample_many(
     return xys
 
 
-# --------------------------------------
-
-
-
-
 # ------------------------------------
 # below: BVH related functions
 
 def bvhnodes_tri(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, *"], Float],
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
         is_morton=True) \
-        -> (NDArray[Shape["*, 3"], UInt], NDArray[Shape["*, *"], Float]):
+        -> (numpy.typing.NDArray, numpy.typing.NDArray):
     """
     2D and 3D bvh tree topoloty geneartion
     :param tri2vtx:
@@ -261,9 +255,9 @@ def bvhnodes_tri(
 
 
 def aabbs_tri(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz0: NDArray[Shape["*, *"], Float],
-        bvhnodes: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz0: numpy.typing.NDArray,
+        bvhnodes: numpy.typing.NDArray,
         aabbs=None,
         i_bvhnode_root=0):
     from del_msh.BVH import aabb_uniform_mesh
@@ -271,10 +265,10 @@ def aabbs_tri(
 
 
 def bvhnodes_vtxedgetri(
-        edge2vtx: NDArray[Shape["*, 3"], UInt],
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, *"], Float]) \
-        -> (NDArray[Shape["*, 3"], UInt], typing.List[int]):
+        edge2vtx: numpy.typing.NDArray,
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray) \
+        -> (numpy.typing.NDArray, typing.List[int]):
     vtx2center = vtx2xyz.copy()
     edge2center = (vtx2xyz[edge2vtx[:, 0], :] + vtx2xyz[edge2vtx[:, 1], :]) / 2
     tri2center = (vtx2xyz[tri2vtx[:, 0], :] + vtx2xyz[tri2vtx[:, 1], :] + vtx2xyz[tri2vtx[:, 2], :]) / 3
@@ -338,8 +332,8 @@ def ccd_intersection_time(
         tri2vtx,
         vtx2xyz0,
         vtx2xyz1,
-        bvhnodes: typing.Optional[numpy.ndarray] = None,
-        aabbs: typing.Optional[numpy.ndarray] = None,
+        bvhnodes: typing.Optional[numpy.typing.NDArray] = None,
+        aabbs: typing.Optional[numpy.typing.NDArray] = None,
         roots: typing.Optional[typing.List[int]] = None):
     from .del_msh import ccd_intersection_time
     if not bvhnodes is None:
@@ -359,8 +353,8 @@ def ccd_intersection_time(
 def first_intersection_ray(
         src,
         dir,
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float]) -> [NDArray[Shape["3"], Float], int]:
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray) -> [numpy.typing.NDArray,int]:
     """
     compute first intersection of a ray against a triangle mesh
     :param src: source of ray
@@ -374,19 +368,19 @@ def first_intersection_ray(
 
 
 def pick_vertex(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float],
-        src: NDArray[Shape["3"], Float],
-        dir: NDArray[Shape["3"], Float]):
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
+        src: numpy.typing.NDArray,
+        dir: numpy.typing.NDArray):
     from .del_msh import pick_vertex_meshtri3
     return pick_vertex_meshtri3(tri2vtx, vtx2xyz, src, dir)
 
 
 def self_intersection(
-        tri2vtx: NDArray[Shape["*, *"], UInt],
-        vtx2xyz: NDArray[Shape["*, *"], Float],
-        bvhnodes: typing.Optional[NDArray[Shape["*, *"], UInt]] = None,
-        aabbs: typing.Optional[NDArray[Shape["*, *"], Float]] = None,
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
+        bvhnodes: typing.Optional[numpy.typing.NDArray] = None,
+        aabbs: typing.Optional[numpy.typing.NDArray] = None,
         i_bvhnode_root: typing.Optional[int] = 0):
     if vtx2xyz.shape[1] == 3:
         from .del_msh import intersection_trimesh3
@@ -405,9 +399,9 @@ def self_intersection(
 
 
 def contacting_pair(
-        tri2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz: NDArray[Shape["*, 3"], Float],
-        edge2vtx: NDArray[Shape["*, 3"], UInt],
+        tri2vtx: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
+        edge2vtx: numpy.typing.NDArray,
         threshold: float):
     from .del_msh import contacting_pair
     return contacting_pair(tri2vtx, vtx2xyz, edge2vtx, threshold)

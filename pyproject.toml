@@ -11,8 +11,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    "numpy",
-    "nptyping"
+    "numpy"
 ]
 
 [tool.maturin]

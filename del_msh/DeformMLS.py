@@ -1,5 +1,4 @@
 import numpy
-import nptyping
 
 
 ''' 
@@ -20,8 +19,8 @@ for i_vtx in range(self.vtx2xyz.shape[0]):
 '''
 
 def kernel(
-        samples: nptyping.NDArray[nptyping.Shape["*, 3"],nptyping.Float],
-        vtx2xyz: nptyping.NDArray[nptyping.Shape["*, 3"],nptyping.Float],
+        samples: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
         p: int=2,
         eps: float=1.0e-3) -> numpy.ndarray:
     """
@@ -42,9 +41,9 @@ def kernel(
 
 
 def precomp(
-        samples: numpy.ndarray,
-        vtx2xyz: numpy.ndarray,
-        weights: numpy.ndarray):
+        samples: numpy.typing.NDArray,
+        vtx2xyz: numpy.typing.NDArray,
+        weights: numpy.typing.NDArray):
     precomp = numpy.ndarray((vtx2xyz.shape[0], samples.shape[0]))
     if samples.shape[0] < 4:
         return

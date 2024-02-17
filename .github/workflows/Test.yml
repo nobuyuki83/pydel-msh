@@ -34,6 +34,7 @@ jobs:
           maturin build --release
           echo "install library using maturin"
           maturin develop --release
+          pip3 list
           echo "test library using pytest"
           pip3 install pytest
           python3 -m pytest

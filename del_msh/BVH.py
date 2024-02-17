@@ -1,9 +1,8 @@
 import numpy
-from nptyping import NDArray, Shape, Float, UInt
+import numpy.typing
 
-
-def edges_of_aabb(aabb: NDArray[Shape["*, *"], Float]) \
-        -> NDArray[Shape["*, *, *"], Float]:
+def edges_of_aabb(aabb: numpy.typing.NDArray) \
+        -> numpy.typing.NDArray:
     num_dim = aabb.shape[1] // 2
     assert aabb.shape[1] == num_dim * 2
     num_aabb = aabb.shape[0]
@@ -23,9 +22,9 @@ def edges_of_aabb(aabb: NDArray[Shape["*, *"], Float]) \
 
 
 def aabb_uniform_mesh(
-        elem2vtx: NDArray[Shape["*, 3"], UInt],
-        vtx2xyz0: NDArray[Shape["*, *"], Float],
-        bvhnodes: NDArray[Shape["*, 3"], UInt],
+        elem2vtx: numpy.typing.NDArray,
+        vtx2xyz0: numpy.typing.NDArray,
+        bvhnodes: numpy.typing.NDArray,
         aabbs=None,
         root=0,
         vtx2xyz1=None):
