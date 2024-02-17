@@ -33,11 +33,7 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           echo "VIRTUAL ENV:" $VIRTUAL_ENV
+          pip3 install maturin
+          maturin develop --release
           pip3 install pytest
-      - uses: messense/maturin-action@v1
-        with:
-          command: develop
-          args: --release
-      - name: run pytest
-        run: |
           python3 -m pytest        
