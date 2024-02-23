@@ -18,17 +18,17 @@ pub fn tesselation2d<'a>(
     let mut loop2idx = vec!(0, num_vtx);
     let mut idx2vtx = Vec::<usize>::from_iter(0..num_vtx);
     type Vec2 = nalgebra::Vector2<f32>;
-    let mut vtx2xy = vtx2xy_in.chunks(2).map(|v| Vec2::new(v[0],v[1]) ).collect();
+    let mut vtx2xy
+        = vtx2xy_in.chunks(2).map(|v| Vec2::new(v[0],v[1]) ).collect();
     //
-    if resolution_edge > 0. {
+    if resolution_edge > 0. { // resample edge edge
         del_msh::polyloop::resample_multiple_loops_remain_original_vtxs(
             &mut loop2idx, &mut idx2vtx, &mut vtx2xy, resolution_edge);
     }
     //
-    let mut tri2pnt = Vec::<del_dtri::topology::DynamicTriangle>::new();
-    let mut pnt2tri = Vec::<del_dtri::topology::DynamicVertex>::new();
-    del_dtri::mesher2::meshing_single_connected_shape2(
-        &mut pnt2tri, &mut vtx2xy, &mut tri2pnt,
+    let (mut tri2pnt, mut pnt2tri)
+        = del_dtri::mesher2::meshing_single_connected_shape2(
+        &mut vtx2xy,
         &loop2idx, &idx2vtx);
     // ----------------------------------------
     if resolution_face > 1.0e-10 {
