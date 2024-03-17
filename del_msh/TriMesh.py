@@ -405,3 +405,6 @@ def contacting_pair(
         threshold: float):
     from .del_msh import contacting_pair
     return contacting_pair(tri2vtx, vtx2xyz, edge2vtx, threshold)
+
+# above: search intersection
+# --------------------------------------

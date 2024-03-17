@@ -26,17 +26,17 @@ pub fn tesselation2d<'a>(
             &mut loop2idx, &mut idx2vtx, &mut vtx2xy, resolution_edge);
     }
     //
-    let (mut tri2pnt, mut pnt2tri)
-        = del_dtri::mesher2::meshing_single_connected_shape2(
+    let (mut tri2pnt, mut tri2tri, mut pnt2tri)
+        = del_msh::trimesh2_dynamic::triangulate_single_connected_shape(
         &mut vtx2xy,
         &loop2idx, &idx2vtx);
     // ----------------------------------------
     if resolution_face > 1.0e-10 {
         let nvtx = vtx2xy.len();
         let mut vtx2flag = vec!(0;nvtx);
-        let mut tri2flag = vec!(0;tri2pnt.len());
-        del_dtri::mesher2::meshing_inside(
-            &mut pnt2tri, &mut tri2pnt, &mut vtx2xy,
+        let mut tri2flag = vec!(0;tri2pnt.len()/3);
+        del_msh::trimesh2_dynamic::add_points_uniformly(
+            &mut tri2pnt, &mut tri2tri, &mut pnt2tri,  &mut vtx2xy,
             &mut vtx2flag, &mut tri2flag,
             nvtx, 0, resolution_face);
     }
@@ -46,16 +46,10 @@ pub fn tesselation2d<'a>(
         vtx2xy_out.push(xy.x);
         vtx2xy_out.push(xy.y);
     }
-    let mut tri2vtx_out = Vec::<usize>::new();
-    for pnt in tri2pnt.iter() {
-        tri2vtx_out.push(pnt.v[0]);
-        tri2vtx_out.push(pnt.v[1]);
-        tri2vtx_out.push(pnt.v[2]);
-    }
     use numpy::IntoPyArray;
     (
         numpy::ndarray::Array2::from_shape_vec(
-            (tri2vtx_out.len() / 3, 3), tri2vtx_out).unwrap().into_pyarray(py),
+            (tri2pnt.len() / 3, 3), tri2pnt).unwrap().into_pyarray(py),
         numpy::ndarray::Array2::from_shape_vec(
             (vtx2xy_out.len() / 2, 2), vtx2xy_out).unwrap().into_pyarray(py),
     )
